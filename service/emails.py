@@ -34,6 +34,8 @@ def sent_email_fe(data):
     if not document:
         raise InputError('document', data['key_mh'], error_code=InputErrorCodes.NO_RECORD_FOUND)
 
+    # TODO: if doc is rejected or processing, do not send mail
+
     primary_recipient = document['email']
     receivers = [primary_recipient]
     additional_recipients = documents.get_additional_emails(data['key_mh'])
@@ -49,18 +51,22 @@ def sent_email_fe(data):
 
     body = 'Adjuntamos los datos de la ' + fe_enums.tagNamePDF[document['document_type']]
 
-    name_file1 = fe_enums.tagNamePDF[document['document_type']] + '_' + document['key_mh'] + '.pdf'
-    name_file2 = document['document_type'] + "_" + document['key_mh'] + '.xml'
-    name_file3 = "AHC_" + document['key_mh'] + '.xml'
-    file1 = base64.b64decode(document['pdfdocument'])
-    file2 = base64.b64decode(document['signxml'])
-    file3 = base64.b64decode(document['answerxml'])
+    signed_name = document['document_type'] + "_" + document['key_mh'] + '.xml'
+    signed_file = base64.b64decode(document['signxml'])
+
+    answer_name = "AHC_" + document['key_mh'] + '.xml'
+    answer_file = base64.b64decode(document['answerxml'])
 
     attachments = [
-        {'name': name_file1, 'file': file1},
-        {'name': name_file2, 'file': file2},
-        {'name': name_file3, 'file': file3}
+        {'name': signed_name, 'file': signed_file},
+        {'name': answer_name, 'file': answer_file}
     ]
+
+    if document['pdfdocument'] is not None:
+        pdf_name = fe_enums.tagNamePDF[document['document_type']] + '_' + document['key_mh'] + '.pdf'
+        pdf_file = base64.b64decode(document['pdfdocument'])
+
+        attachments.append({'name': pdf_name, 'file': pdf_file})
 
     send_email(receivers, host, sender, port, encrypt_type,
                username, password, subject, body, attachments)

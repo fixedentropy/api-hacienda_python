@@ -2,6 +2,10 @@ from copy import deepcopy
 from datetime import datetime, timedelta
 from decimal import Decimal
 
+from dateutil import parser
+from dateutil import tz
+from dateutil.utils import default_tzinfo
+
 from service import fe_enums, utils
 from infrastructure import companies as companies_dao
 from infrastructure import documents as documents_dao
@@ -18,6 +22,7 @@ CREDIT_CONDITION_CODE = '02'
 CREDIT_CURRENCY_EXCHANGE_POLICY = """\
 Si la factura no se cancela dentro del mes de su facturación, \
 se debe pagar al tipo de cambio oficial al dia de su cancelación."""
+TZ_CR = tz.gettz('America/Costa_Rica')
 
 
 def arrange_data(data: dict, company_data: dict) -> tuple:
@@ -395,26 +400,17 @@ def parse_datetime(value, field) -> datetime:
     if isinstance(value, datetime):
         return value
 
-    expected_datetime_formats = (
-        '%d-%m-%YT%H:%M:%S%z',
-        '%d/%m/%Y'
-    )
-    parsed = None
-    for date_format in expected_datetime_formats:
-        try:
-            parsed = datetime.strptime(value, date_format)
-            break
-        except ValueError:
-            pass
-
-    if not parsed:  # if we still couldn't parse it, try isoformat
-        try:
-            parsed = datetime.fromisoformat(value)
-        except ValueError as ver:
-            raise ValidationError(value, field,
-                                  error_code=ValidationErrorCodes.INVALID_DATETIME_FORMAT) from ver
-
-    return parsed
+    try:
+        parsed = default_tzinfo(
+            parser.parse(value, dayfirst=True), TZ_CR
+        )
+    except ValueError as ver:
+        raise ValidationError(
+            value, field,
+            error_code=ValidationErrorCodes.INVALID_DATETIME_FORMAT
+        ) from ver
+    else:
+        return parsed
 
 
 def generates_pdf(data: dict) -> bool:

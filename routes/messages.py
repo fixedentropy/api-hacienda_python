@@ -8,6 +8,7 @@ from helpers.debugging import set_debug_mode
 def create_message():
     body = connexion.request.json
     result = model_message.create(body)
+    result['http_status'] = 201
     return build_response(result)
 
 
