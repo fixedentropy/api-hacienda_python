@@ -7,6 +7,7 @@ from helpers import utils
 def create_new_user():
     body = json.loads(connexion.request.data)
     result = service.create_user(body['data'])
+    result['http_status'] = 201
     return utils.build_response(result)
 
 
