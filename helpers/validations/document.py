@@ -13,6 +13,7 @@ from helpers.entities.strings import IDN, IDNType
 from service.fe_enums import SituacionComprobante
 
 OPTIONAL_RECIPIENT_DOC_TYPES = ('TE', 'FEE', 'NC', 'ND')
+REQUIRED_REFERENCE_DOC_TYPES = ('NC', 'ND')
 CABYS_VALID_LENGTH = 13
 BASEIMPONIBLE_REQ_TAX_CODE = '07'
 IVAFACTOR_REQ_TAX_CODE = '08'
@@ -45,6 +46,8 @@ def validate_data(data: dict):
     validate_header(data)
 
     doc_type = data['tipo']
+    validate_data_by_document_type(doc_type, data)
+
     details = data['detalles']
     validate_details(doc_type, details)
 
@@ -211,6 +214,20 @@ def validate_sequence(sequence: str, branch: str,
         )
 
     return True
+
+
+def validate_data_by_document_type(doc_type: str, data: dict):
+    # validating just Notes (Credit/Debit) for now and just making sure a reference node comes along...
+    if doc_type in REQUIRED_REFERENCE_DOC_TYPES:
+        if not data.get('referencia', []):
+            raise ValidationError(
+                error_code=ValidationErrorCodes.INVALID_DOCUMENT,
+                message=(
+                    'El documento recibido es de tipo: "{}"; y se especifico que este'
+                    ' tipo de documento requiere tener un nodo de referencia, el cual'
+                    ' no fue especificado.'
+                ).format(doc_type)
+            )
 
 
 # TODO: validate required and optional fields
