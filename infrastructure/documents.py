@@ -8,8 +8,8 @@ def save_document(company_id, key_mh, sign_xml, status, date, document_type, rec
     receiver_type = None
     receiver_dni = None
     if receiver is not None:
-        receiver_type = receiver['tipoIdentificacion']
-        receiver_dni = receiver['numeroIdentificacion']
+        receiver_type = receiver.get('tipoIdentificacion')
+        receiver_dni = receiver.get('numeroIdentificacion')
 
     procedure = 'sp_saveDocument'
     args = (company_id, key_mh, sign_xml, status, date, document_type, receiver_type,

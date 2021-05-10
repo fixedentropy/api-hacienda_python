@@ -152,32 +152,19 @@ def refresh_token_hacienda(tipo_ambiente, token):  # duplicated in utils_mh... h
 
 def company_xml(sb, issuing_company, document_type):
     if document_type == 'FEC':
-        vat = re.sub('[^0-9]', '', issuing_company['numeroIdentificacion'])
-        if not issuing_company['tipoIdentificacion']:
-            if len(vat) == 9:  # cedula fisica
-                id_code = '01'
-            elif len(vat) == 10:  # cedula juridica
-                id_code = '02'
-            elif len(vat) == 11 or len(vat) == 12:  # dimex
-                id_code = '03'
-            else:
-                id_code = '05'
-        else:
-            id_code = issuing_company['tipoIdentificacion']
-
         if issuing_company.get('nombre'):
             sb.append('<Emisor>')
             sb.append('<Nombre>' + escape(issuing_company['nombre']) + '</Nombre>')
 
-            if document_type == 'FEE':
-                if issuing_company['numeroIdentificacion']:
+            if issuing_company.get('numeroIdentificacion'):
+                if document_type == 'FEE':
                     sb.append('<IdentificacionExtranjero>' + issuing_company[
                         'numeroIdentificacion'] + '</IdentificacionExtranjero>')
-            else:
-                sb.append('<Identificacion>')
-                sb.append('<Tipo>' + id_code + '</Tipo>')
-                sb.append('<Numero>' + vat + '</Numero>')
-                sb.append('</Identificacion>')
+                else:
+                    sb.append('<Identificacion>')
+                    sb.append('<Tipo>' + issuing_company['tipoIdentificacion'] + '</Tipo>')
+                    sb.append('<Numero>' + issuing_company['numeroIdentificacion'] + '</Numero>')
+                    sb.append('</Identificacion>')
 
             if issuing_company.get('nombreComercial'):
                 sb.append('<NombreComercial>{}</NombreComercial>'
@@ -201,14 +188,11 @@ def company_xml(sb, issuing_company, document_type):
                     sb.append('<NumTelefono>' + str(issuing_company['telefono']) + '</NumTelefono>')
                     sb.append('</Telefono>')
 
-                match = issuing_company['correo'] and re.match(
+                match = issuing_company.get('correo') and re.match(
                     r'^(\s?[^\s,]+@[^\s,]+\.[^\s,]+\s?,)*(\s?[^\s,]+@[^\s,]+\.[^\s,]+)$',
                     issuing_company['correo'].lower())
                 if match:
-                    email_receptor = issuing_company['correo']
-                else:
-                    email_receptor = 'indefinido@indefinido.com'
-                sb.append('<CorreoElectronico>' + email_receptor + '</CorreoElectronico>')
+                    sb.append('<CorreoElectronico>' + issuing_company['correo'] + '</CorreoElectronico>')
 
             sb.append('</Emisor>')
     else:
@@ -262,32 +246,19 @@ def receptor_xml(sb, receiver_company, document_type):
         if not receiver_company:
             pass
         else:
-            vat = re.sub('[^0-9]', '', receiver_company['numeroIdentificacion'])
-            if not receiver_company['tipoIdentificacion']:
-                if len(vat) == 9:  # cedula fisica
-                    id_code = '01'
-                elif len(vat) == 10:  # cedula juridica
-                    id_code = '02'
-                elif len(vat) == 11 or len(vat) == 12:  # dimex
-                    id_code = '03'
-                else:
-                    id_code = '05'
-            else:
-                id_code = receiver_company['tipoIdentificacion']
-
             if receiver_company.get('nombre'):
                 sb.append('<Receptor>')
                 sb.append('<Nombre>' + escape(receiver_company['nombre']) + '</Nombre>')
 
-                if document_type == 'FEE':
-                    if receiver_company['numero_identificacion']:
+                if receiver_company.get('numeroIdentificacion'):
+                    if document_type == 'FEE':
                         sb.append('<IdentificacionExtranjero>' + receiver_company[
-                            'numero_identificacion'] + '</IdentificacionExtranjero>')
-                else:
-                    sb.append('<Identificacion>')
-                    sb.append('<Tipo>' + id_code + '</Tipo>')
-                    sb.append('<Numero>' + vat + '</Numero>')
-                    sb.append('</Identificacion>')
+                            'numeroIdentificacion'] + '</IdentificacionExtranjero>')
+                    else:
+                        sb.append('<Identificacion>')
+                        sb.append('<Tipo>' + receiver_company['tipoIdentificacion'] + '</Tipo>')
+                        sb.append('<Numero>' + receiver_company['numeroIdentificacion'] + '</Numero>')
+                        sb.append('</Identificacion>')
 
                 if receiver_company.get('nombreComercial'):
                     sb.append('<NombreComercial>{}</NombreComercial>'
@@ -312,14 +283,11 @@ def receptor_xml(sb, receiver_company, document_type):
                         sb.append('<NumTelefono>' + str(receiver_company['telefono']) + '</NumTelefono>')
                         sb.append('</Telefono>')
 
-                    match = receiver_company['correo'] and re.match(
+                    match = receiver_company.get('correo') and re.match(
                         r'^(\s?[^\s,]+@[^\s,]+\.[^\s,]+\s?,)*(\s?[^\s,]+@[^\s,]+\.[^\s,]+)$',
                         receiver_company['correo'].lower())
                     if match:
-                        email_receptor = receiver_company['correo']
-                    else:
-                        email_receptor = 'indefinido@indefinido.com'
-                    sb.append('<CorreoElectronico>' + email_receptor + '</CorreoElectronico>')
+                        sb.append('<CorreoElectronico>' + receiver_company['correo'] + '</CorreoElectronico>')
 
                 sb.append('</Receptor>')
 

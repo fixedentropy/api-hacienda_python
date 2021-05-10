@@ -25,12 +25,13 @@ class DetailedRequestBodyValidator(RequestBodyValidator):
                          extra={'validator': 'body'})
             response_data = []
             for error in errors:
-                response_data.append("""-In {}: {}.""".format(
+                response_data.append("""-En {}: {}.""".format(
                     str(list(error.absolute_path)), error.message)
                 )
-            response = jsonify({'status': 'invalido',
-                                'detail': ("""The received json has the """
-                                           """following errors:
+            response = jsonify({'status': 'Invalido',
+                                'code': 399,  # ValidationError.Other?
+                                'detail': ("""El json recibido presenta \
+los siguientes errores:
 """) + str(response_data)})
             response.status_code = 400
             return response

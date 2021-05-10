@@ -53,11 +53,12 @@ def arrange_xml_data(data: dict) -> dict:
                 references = [references]
 
             for ref in references:
-                document = documents_dao.get_document(ref['numeroReferencia'])
-                if document is not None:
-                    ref['fecha'] = document['datesign'].isoformat()
-                else:
-                    ref['fecha'] = parse_datetime(ref['fecha'], 'referencia => fecha').isoformat()
+                if 'numeroReferencia' in ref:
+                    document = documents_dao.get_document(ref['numeroReferencia'])
+                    if document is not None:
+                        ref['fecha'] = document['datesign'].isoformat()
+                    else:
+                        ref['fecha'] = parse_datetime(ref['fecha'], 'referencia => fecha').isoformat()
 
             if references:
                 xml_data['referencia'] = references
