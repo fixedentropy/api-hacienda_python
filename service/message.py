@@ -58,7 +58,11 @@ def create(data: dict):
 
     message.code = data['mensaje']
     message.detail = data['detalle']
-    message.taxTotalAmount = DecimalMoney(data['montoImpuesto'])
+    if data['montoImpuesto']:
+        message.taxTotalAmount = DecimalMoney(data['montoImpuesto'])
+    else:
+        message.taxTotalAmount = DecimalMoney('0')
+
     message.invoiceTotalAmount = DecimalMoney(data['total'])
 
     issue_date = _curr_datetime_cr(False)
