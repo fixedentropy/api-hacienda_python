@@ -54,7 +54,7 @@ class Message(ABC):
         tagmap = self._XML_TAG_MAP
         for prop, tag in tagmap.items():
             propData = self.__dict__.get(prop)
-            if propData:
+            if propData or propData == 0:
                 child = etree.SubElement(root, tag)
                 child.text = str(propData)
 
