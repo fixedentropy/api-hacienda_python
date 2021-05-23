@@ -10,7 +10,7 @@ class AuthErrorCodes(IntEnum):
     EXPIRED_JWT = _BASE + 4
 
 
-class InputErrorCodes(IntEnum):
+class InputErrorCodes(IntEnum):  # TODO
     _BASE = 2 * 10
     MISSING_PROPERTY = _BASE + 1
     INCORRECT_TYPE = _BASE + 2
@@ -19,6 +19,7 @@ class InputErrorCodes(IntEnum):
     P12_PIN_MISMATCH = _BASE + 5
     INACTIVE_COMPANY = _BASE + 6
     DOCUMENT_NOT_YET_SENT = _BASE + 7
+    OTHER = _BASE + 9
 
 
 class ValidationErrorCodes(IntEnum):

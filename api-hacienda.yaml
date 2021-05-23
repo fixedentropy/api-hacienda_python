@@ -163,6 +163,7 @@ components:
           type: string
         otrasSenas:
           type: string
+          maxLength: 250
         otrasSenasExtranjero:
           type: string
         codigoPais:

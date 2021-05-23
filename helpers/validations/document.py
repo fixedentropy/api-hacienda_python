@@ -10,10 +10,11 @@ from helpers.errors.enums import InputErrorCodes, ValidationErrorCodes, Internal
 # from helpers.debugging import time_my_func
 from helpers.entities.numerics import DecimalMoney as Money
 from helpers.entities.strings import IDN, IDNType
-from service.fe_enums import SituacionComprobante
+from service.fe_enums import SituacionComprobante, REFERENCE_DOCUMENT_TYPE, REFERENCE_CODE
 
 OPTIONAL_RECIPIENT_DOC_TYPES = ('TE', 'FEE', 'NC', 'ND')
 REQUIRED_REFERENCE_DOC_TYPES = ('NC', 'ND')
+REQUIRED_IDN_DOC_TYPE = ('FE', 'FEC')
 CABYS_VALID_LENGTH = 13
 BASEIMPONIBLE_REQ_TAX_CODE = '07'
 IVAFACTOR_REQ_TAX_CODE = '08'
@@ -46,7 +47,20 @@ def validate_data(data: dict):
     validate_header(data)
 
     doc_type = data['tipo']
-    validate_data_by_document_type(doc_type, data)
+
+    references = data.get('referencia', [])
+    if doc_type in REQUIRED_REFERENCE_DOC_TYPES \
+            and not references:
+        raise ValidationError(
+            error_code=ValidationErrorCodes.INVALID_DOCUMENT,
+            message=(
+                'El documento recibido es de tipo: "{}"; y se especifico que este'
+                ' tipo de documento requiere tener un nodo de referencia, el cual'
+                ' no fue especificado.'
+            ).format(doc_type)
+        )
+    for ref in references:
+        validate_reference(ref)
 
     details = data['detalles']
     validate_details(doc_type, details)
@@ -216,21 +230,92 @@ def validate_sequence(sequence: str, branch: str,
     return True
 
 
-def validate_data_by_document_type(doc_type: str, data: dict):
-    # validating just Notes (Credit/Debit) for now and just making sure a reference node comes along...
-    if doc_type in REQUIRED_REFERENCE_DOC_TYPES:
-        if not data.get('referencia', []):
+def validate_reference(reference: dict):
+    ref_doc_type = reference.get('tipoDocumento')
+    ref_date = reference.get('fecha')
+    if not ref_doc_type or not ref_date:
+        raise ValidationError(
+            error_code=ValidationErrorCodes.INVALID_DOCUMENT,
+            message=(
+                """La referencia encontrada en el documento carece de \
+datos requeridos:
+tipoDocumento: "{}"
+fecha: "{}" """
+            ).format(
+                ref_doc_type if ref_doc_type is not None else '',
+                ref_date if ref_date is not None else ''
+            )
+        )
+
+    valid_ref_doc_type_codes = REFERENCE_DOCUMENT_TYPE.keys()
+    if ref_doc_type not in valid_ref_doc_type_codes:
+        raise ValidationError(
+            error_code=ValidationErrorCodes.INVALID_DOCUMENT,
+            message=(
+                """Los datos de referencia no poseen un tipo de documento válido.
+Valores válidos: {}
+tipoDocumento: "{}" """
+            ).format(
+                str(list(valid_ref_doc_type_codes)),
+                ref_doc_type
+            )
+        )
+
+    try:
+        datetime.fromisoformat(ref_date)
+    except ValueError:
+        raise ValidationError(
+            error_code=ValidationErrorCodes.INVALID_DOCUMENT,
+            message=(
+                """Los datos de referencia no poseen una fecha de emisión \
+en formato válido.
+Formato esperado: {}
+Fecha recibida: "{}" """
+            ).format(
+                'YYYY-MM-DD[*HH[:MM[:SS[.fff[fff]]]][+HH:MM[:SS[.ffffff]]]]',
+                ref_date
+            )
+        )
+
+    if ref_doc_type != '13':
+        ref_num = reference.get('numeroReferencia')
+        ref_code = reference.get('codigo')
+        ref_reason = reference.get('razon')
+
+        if not ref_num or not ref_code or not ref_reason:
             raise ValidationError(
                 error_code=ValidationErrorCodes.INVALID_DOCUMENT,
                 message=(
-                    'El documento recibido es de tipo: "{}"; y se especifico que este'
-                    ' tipo de documento requiere tener un nodo de referencia, el cual'
-                    ' no fue especificado.'
-                ).format(doc_type)
+                    """La referencia encontrada en el documento carece de \
+datos requeridos:
+numeroReferencia: "{}"
+codigo: "{}"
+razon: "{}" """
+                ).format(
+                    ref_num if ref_num is not None else '',
+                    ref_code if ref_code is not None else '',
+                    ref_reason if ref_reason is not None else ''
+                )
             )
 
+        valid_ref_codes = REFERENCE_CODE.keys()
+        if ref_code not in valid_ref_codes:
+            raise ValidationError(
+                error_code=ValidationErrorCodes.INVALID_DOCUMENT,
+                message=(
+                    """Los datos de referencia no poseen un código de referencia \
+válido.
+Valores válidos: {}
+codigo: "{}" """
+                ).format(
+                    str(list(valid_ref_codes)),
+                    ref_code
+                )
+            )
 
-# TODO: validate required and optional fields
+    return True
+
+
 def validate_recipient(recipient: dict, doc_type: str):
     if recipient is None:
         if doc_type in OPTIONAL_RECIPIENT_DOC_TYPES:
@@ -242,7 +327,53 @@ def validate_recipient(recipient: dict, doc_type: str):
                          'receptor y este no fue especificado.').format(doc_type)
             )
 
-    rec_idn_type = recipient['tipoIdentificacion']  # required
+    validate_recipient_idn(recipient, doc_type)
+    validate_recipient_location(recipient, doc_type)
+
+    emails_to_validate = []
+    email = recipient.get('correo')
+    if email:
+        emails_to_validate.append(email)
+
+    additional_emails = recipient.get('correosAdicionales', [])
+    if not isinstance(additional_emails, list):
+        raise InputError(
+            'Receptor>correosAdicionales',
+            'Se recibio como tipo: {}. Se esperaba un arreglo.'.format(str(type(additional_emails))),
+            error_code=InputErrorCodes.INCORRECT_TYPE
+        )
+    emails_to_validate.extend(additional_emails)
+
+    for e in emails_to_validate:
+        validate_email(e)
+
+    return True
+
+
+def validate_recipient_idn(recipient: dict, doc_type: str):
+    rec_idn_type = recipient.get('tipoIdentificacion')
+    idn = recipient.get('numeroIdentificacion')
+
+    no_idn_info = not rec_idn_type and not idn
+    if doc_type not in REQUIRED_IDN_DOC_TYPE and no_idn_info:
+        return True
+
+    incomplete_idn_info = not rec_idn_type or not idn
+    if doc_type in REQUIRED_IDN_DOC_TYPE \
+            and incomplete_idn_info:
+        raise ValidationError(
+            error_code=ValidationErrorCodes.INVALID_DOCUMENT,
+            message=(
+                """El receptor en el documento no posee datos de identificación \
+o estos están incompletos. Datos requeridos:
+tipoIdentificacion: "{}"
+numeroIdentificacion: "{}" """
+            ).format(
+                rec_idn_type if rec_idn_type is not None else '',
+                idn if idn is not None else ''
+            )
+        )
+
     try:  # should be unnecesary since it's validated in yaml
         idn_type_inst = IDNType(rec_idn_type)
     except ValueError:
@@ -252,7 +383,6 @@ def validate_recipient(recipient: dict, doc_type: str):
                      'identificación válido.').format(rec_idn_type)
         )
 
-    idn = recipient['numeroIdentificacion']  # required
     try:
         IDN(idn_type_inst, idn)
     except ValueError:
@@ -263,17 +393,40 @@ def validate_recipient(recipient: dict, doc_type: str):
                      ).format(idn, rec_idn_type)
         )
 
-    email = recipient['correo']  # optional
-    additional_emails = recipient.get('correosAdicionales', [])
-    if not isinstance(additional_emails, list):
-        raise InputError(
-            'Receptor>correosAdicionales',
-            'Se recibio como tipo: {}. Se esperaba un arreglo.'.format(str(type(additional_emails))),
-            error_code=InputErrorCodes.INCORRECT_TYPE
-        )
+    return True
 
-    for e in (email, *additional_emails):
-        validate_email(e)
+
+def validate_recipient_location(recipient: dict, doc_type: str):
+    province = recipient.get('provincia')
+    canton = recipient.get('canton')
+    district = recipient.get('distrito')
+    directions = recipient.get('otrasSenas')
+
+    no_location_info = not province and not canton and not district \
+        and not directions
+    if no_location_info and doc_type != 'FEC':
+        return True
+
+    incomplete_location_info = not province or not canton or not district \
+        or not directions
+    if incomplete_location_info:
+        raise ValidationError(
+            error_code=ValidationErrorCodes.INVALID_DOCUMENT,
+            message=(
+                """El documento recibido no posee información completa \
+de ubicación para el receptor (o emisor en Facturas de Compra). Los \
+siguientes datos son requeridos:
+provincia: "{}"
+canton: "{}"
+distrito: "{}"
+otrasSenas: "{}" """
+            ).format(
+                province if province is not None else '',
+                canton if canton is not None else '',
+                district if district is not None else '',
+                directions if directions is not None else ''
+            )
+        )
 
     return True
 

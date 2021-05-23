@@ -82,8 +82,8 @@ def create_document(data):
 
     _receptor = xml_data.get('receptor')
     if _receptor:
-        _email = _receptor['correo']
-        _additional_emails = _receptor['correosAdicionales']
+        _email = _receptor.get('correo')
+        _additional_emails = _receptor.get('correosAdicionales', [])
 
     _total_taxes = xml_data['totalImpuestos']
     _lines = xml_data['detalles']
@@ -372,14 +372,14 @@ def consult_document(company_user, key_mh):  # todo: review this...
         res_doc_status = 'procesando'
 
     response['status'] = res_doc_status
-    if res_doc_status == 'aceptado' \
-            and document_data['document_type'] != "TE" \
-            and document_data['isSent'] is None:
+    if document_data['isSent'] is None:
         mail_sent = 0
         try:
             emails.sent_email_fe(document_data)
+        except InputError:
+            pass
         except Exception as ex:  # TODO : be more specific about exceptions
-            docLogger.warning("**Email couldn't be sent for some reason:***", exc_info=ex)
+            docLogger.error("**Email couldn't be sent for some reason:***", exc_info=ex)
             response['data']['warning'] = 'A problem occurred when attempting to send the email.'  # WARNING
             # temp juggling insanity... nevermind, don't look at it...
             mail_sent = get_smtp_error_code(ex)

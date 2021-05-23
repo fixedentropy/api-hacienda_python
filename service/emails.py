@@ -13,8 +13,36 @@ cfg = globalsettings.cfg
 
 
 def sent_email_fe(data):
-    smtp_data = company_smtp.get_company_smtp(data['company_user'])
+    document = documents.get_document(data['key_mh'])
+    if not document:
+        raise InputError('document', data['key_mh'], error_code=InputErrorCodes.NO_RECORD_FOUND)
 
+    if document['status'] != 'aceptado':
+        raise InputError(
+            error_code=InputErrorCodes.OTHER,
+            message=(
+                """No se puede enviar el documento: su estado no es: "aceptado".
+Estado del documento: "{}" """
+            ).format(document['status'])
+        )
+    if document['document_type'] == "TE":
+        raise InputError(
+            error_code=InputErrorCodes.OTHER,
+            message=(
+                """No se puede enviar el documento: se especifico que no se \
+pueden enviar Tiquetes Electronicos por correo."""
+            )
+        )
+    if not document['email']:
+        raise InputError(
+            error_code=InputErrorCodes.OTHER,
+            message=(
+                """No se puede enviar el documento: no se especifico un correo \
+electronico para el receptor. """
+            )
+        )
+
+    smtp_data = company_smtp.get_company_smtp(data['company_user'])
     if smtp_data:
         host = smtp_data['host']
         sender = smtp_data['sender']
@@ -29,12 +57,6 @@ def sent_email_fe(data):
         password = cfg['email']['password']
         port = cfg['email']['port']
         encrypt_type = cfg['email']['encrypt_type']
-
-    document = documents.get_document(data['key_mh'])
-    if not document:
-        raise InputError('document', data['key_mh'], error_code=InputErrorCodes.NO_RECORD_FOUND)
-
-    # TODO: if doc is rejected or processing, do not send mail
 
     primary_recipient = document['email']
     receivers = [primary_recipient]

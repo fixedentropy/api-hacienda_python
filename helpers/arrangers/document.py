@@ -53,11 +53,12 @@ def arrange_xml_data(data: dict) -> dict:
                 references = [references]
 
             for ref in references:
-                document = documents_dao.get_document(ref['numeroReferencia'])
-                if document is not None:
-                    ref['fecha'] = document['datesign'].isoformat()
-                else:
-                    ref['fecha'] = parse_datetime(ref['fecha'], 'referencia => fecha').isoformat()
+                if 'numeroReferencia' in ref:
+                    document = documents_dao.get_document(ref['numeroReferencia'])
+                    if document is not None:
+                        ref['fecha'] = document['datesign'].isoformat()
+                    else:
+                        ref['fecha'] = parse_datetime(ref['fecha'], 'referencia => fecha').isoformat()
 
             if references:
                 xml_data['referencia'] = references
@@ -307,7 +308,16 @@ def build_pdf_body_data(data: dict) -> dict:
         issued_date = parse_datetime(
             data['fechafactura'], 'fechafactura'
         )
-        term_days = data['plazoCredito']
+        term_days = data.get('plazoCredito', 0)
+        if not term_days:
+            raise ValidationError(
+                error_code=ValidationErrorCodes.INVALID_DOCUMENT,
+                message=(
+                    'Se especifico que la condicion de venta para este documento'
+                    ' es "{}" ({}), pero, no se indicó un plazo válido.\nPlazo: "{}"'
+                ).format('Credito', sale_condition, term_days)
+            )
+
         body_data['due_date'] = (issued_date + timedelta(
             days=int(term_days)
         )).strftime(DATETIME_DISPLAY_FORMAT)

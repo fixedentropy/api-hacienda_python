@@ -158,3 +158,31 @@ ServiceCodeTypes = {
     '04': 'Código uso interno',
     '99': 'Otros'
 }
+
+REFERENCE_DOCUMENT_TYPE = {
+    '01': 'Factura electrónica',
+    '02': 'Nota de débito electrónica',
+    '03': 'Nota de crédito electrónica',
+    '04': 'Tiquete electrónico',
+    '05': 'Nota de despacho',
+    '06': 'Contrato',
+    '07': 'Procedimiento',
+    '08': 'Comprobante emitido en contingencia',
+    '09': 'Devolución mercadería',
+    '10': 'Sustituye factura rechazada por el Ministerio de Hacienda',
+    '11': 'Sustituye factura rechazada por el Receptor del comprobante',
+    '12': 'Sustituye Factura de exportación',
+    '13': 'Facturación mes vencido',
+    '14': 'Comprobante aportado por contribuyente del Régimen de Tributación Simplificado',
+    '15': 'Sustituye una Factura electrónica de Compra',
+    '99': 'Otros'
+}
+
+REFERENCE_CODE = {
+    '01': 'Anula Documento de Referencia',
+    '02': 'Corrige monto',
+    '03': 'Corrige monto',  # this one is not listed on 4.3, but I guess it's kept (and works?) for compatibility
+    '04': 'Referencia a otro documento',
+    '05': 'Sustituye comprobante provisional por contingencia.',
+    '99': 'Otros'
+}
