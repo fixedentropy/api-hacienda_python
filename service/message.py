@@ -2,6 +2,7 @@
 import logging
 from base64 import b64encode, b64decode
 from datetime import datetime
+from decimal import InvalidOperation
 
 import requests
 from pytz import timezone
@@ -58,7 +59,14 @@ def create(data: dict):
 
     message.code = data['mensaje']
     message.detail = data['detalle']
-    message.taxTotalAmount = DecimalMoney(data['montoImpuesto'])
+    try:
+        message.taxTotalAmount = DecimalMoney(data['montoImpuesto'])
+    except InvalidOperation:
+        message.taxTotalAmount = DecimalMoney('0')
+    except Exception:
+        _logger.error('Error: {}'.format(data))
+        raise
+
     message.invoiceTotalAmount = DecimalMoney(data['total'])
 
     issue_date = _curr_datetime_cr(False)
