@@ -250,12 +250,15 @@ def build_pdf_body_data(data: dict) -> dict:
     recipient = data['recipient']
     currency = data['codigoTipoMoneda']
 
-    body_data = {'key_mh': data['clavelarga'],
-                 'total_document': total_document,
-                 'total_taxes': utils.stringRound(data.get('totalImpuestos', '0')),
-                 'total_discounts': utils.stringRound(data.get('totalDescuentos', '0')),
-                 'total_sales': utils.stringRound(data['totalVentas']),
-                 'recipient': recipient}
+    body_data = {
+        'key_mh': data['clavelarga'],
+        'total_document': total_document,
+        'total_taxes': utils.stringRound(data.get('totalImpuestos', '0')),
+        'total_discounts': utils.stringRound(data.get('totalDescuentos', '0')),
+        'total_sales': utils.stringRound(data['totalVentas']),
+        'recipient': recipient,
+        'salesman_code': data['codigoVendedor']
+    }
 
     payment_methods_csvs = ', '.join(
         list(
@@ -353,7 +356,46 @@ def build_pdf_body_data(data: dict) -> dict:
             'total_exempt': data['totalExonerado']
         }
 
+    ref = arrange_pdf_reference(data.get('referencia', []))
+    if ref:
+        body_data['references'] = ref
+
     return body_data
+
+
+def arrange_pdf_reference(data):
+    if not data or isinstance(data, str):
+        return None
+
+    data_references = data.copy()
+    if isinstance(data_references, dict):
+        data_references = [data_references]
+
+    references = []
+    for data_ref in data_references:
+        ref_doc_type_desc = fe_enums.REFERENCE_DOCUMENT_TYPE.get(
+            data_ref['tipoDocumento'],
+            'Indefinido ({})'.format(data_ref['tipoDocumento'])
+        )
+
+        ref = {
+            'type': ref_doc_type_desc,
+            'date': data_ref['fecha']
+        }
+        if 'numeroReferencia' in data_ref:
+            ref['number'] = data_ref['numeroReferencia']
+        if 'codigo' in data_ref:
+            ref_code_desc = fe_enums.REFERENCE_CODE.get(
+                data_ref['codigo'],
+                'Indefinido ({})'.format(data_ref['codigo'])
+            )
+            ref['code'] = ref_code_desc
+        if 'razon' in data_ref:
+            ref['reason'] = data_ref['razon']
+
+        references.append(ref)
+
+    return references
 
 
 def build_pdf_header_data(data: dict) -> dict:

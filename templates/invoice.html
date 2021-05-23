@@ -12,16 +12,20 @@
 		}
 
 		.container {
-			font-size: small
+			font-size: 13px
 		}
 
 		.table {
-			font-size: small;
+			font-size: 13px;
 			margin-top: 20px;
 		}
 
 		.new-page {
 			page-break-before: always
+		}
+
+		.no-wrap {
+			white-space: nowrap
 		}
 	</style>
 </head>
@@ -29,68 +33,53 @@
 	<div class="container">
 		<table class="table table-sm">
 			<tr>
-				<td>
-					<b>Clave:</b>
-				</td>
-				<td colspan="4">
-					{{key_mh}}
-				</td>
+				<td><b>Clave:</b></td>
+				<td>{{key_mh}}</td>
+				<td class="no-wrap"><b>Código de Vendedor:</b></td>
+				<td colspan="3">{{salesman_code}}</td>
 			</tr>
 			<tr>
-				<td>
-					<b>Cliente:</b>
-				</td>
-				<td colspan="4">
-					{{recipient.name}}
-				</td>
+				<td><b>Condici&oacuten:</b></td>
+				<td>{{sale_condition}}{% if due_date %} - {{credit_term}} dias - Vence: {{due_date}}{% endif %}</td>
+				<td class="no-wrap"><b>Medio(s) de Pago:</b></td>
+				<td>{{payment_method}}</td>
+				<td><b>Moneda:</b></td>
+				<td>{{currency.tipoMoneda}}{% if currency.tipoMoneda != "CRC" and currency.tipoCambio %} T.c. {{currency.tipoCambio}}{% endif %}</td>
 			</tr>
 			<tr>
-				<td> <b>{{type_iden_recipient}}:</b> </td>
-				<td colspan="2">
-					{{recipient.idn_number}}
-				</td>
-				<td> <b>Condici&oacuten:</b> </td>
-				<td>
-					{{sale_condition}}{% if due_date %} - {{credit_term}} dias - Vence: {{due_date}}{% endif %}
-				</td>
-			</tr>
-			<tr>
-				<td> <b>Tel&eacutefono:</b> </td>
-				<td colspan="2">
-					{{recipient.phone}}
-				</td>
-				<td> <b>Medio(s) de Pago:</b> </td>
-				<td>
-					{{payment_method}}
-				</td>
-			</tr>
-			<tr>
-				<td> <b>Correo:</b> </td>
-				<td colspan="2">
-					{{recipient.email}}
-				</td>
-				<td> <b>Moneda:</b> </td>
-				<td>
-					{{currency.tipoMoneda}}{% if currency.tipoMoneda != "CRC" and currency.tipoCambio %} T.c. {{currency.tipoCambio}}{% endif %}
-				</td>
-			</tr>
-			<tr>
-				<td> <b>Direcci&oacuten:</b> </td>
-				<td colspan="2">
-					{{recipient.address}}
-				</td>
 				{% if order_num %}
-				<td> <b>Nro. de Orden</b> </td>
-				<td>
-					{{order_num}}
-				</td>
-				{# in order to preserve some of the displayed styles??? #}
-				{% else %}
-				<td></td>
-				<td></td>
+				<td><b>Nro. de Orden:</b></td>
+				<td colspan="6">{{order_num}}</td>
 				{% endif %}
 			</tr>
+			{% if recipient.name %}
+			<tr>
+				<td colspan="6" style="border-left-style: solid; border-right-style: solid; border-bottom-style: solid; border-color: #dee2e6">
+					<b>Cliente:</b>
+					<table style="margin: 2px 20px">
+						<tr>
+							<td style="border-top: 0px"><b>Nombre:</b></td>
+							<td style="border-top: 0px" colspan="6">{{recipient.name}}</td>
+						</tr>
+						<tr>
+							<td class="no-wrap"><b>{{type_iden_recipient}}:</b></td>
+							<td>{{recipient.idn_number}}</td>
+							<td colspan="4"><b>Tel&eacutefono:</b>	{{recipient.phone}}</td>
+						</tr>
+						<tr>
+							<td><b>Correo:</b></td>
+							<td colspan="6">{{recipient.email}}</td>
+						</tr>
+						<tr>
+							<td><b>Direcci&oacuten:</b></td>
+							<td colspan="6">{{recipient.address}}</td>
+						</tr>
+					</table>
+				</td>
+			</tr>
+			{% endif %}
 		</table>
+		<hr>
 		<table class="table table-sm table-striped">
 			<thead class="thead-dark">
 				<tr>
@@ -124,35 +113,38 @@
 		<table class="table table-sm">
 			<tr>
 				<td>
-					{{total_document_words}}
+					<table>
+						<tr>
+							<td style="border-top: 0px; margin-right: 3px">{{total_document_words}}</td>
+						</tr>
+					</table>
 				</td>
 				<td>
-					<table class="table">
-						<tr>
-							<td scope="row">Sub Total:</td>
-							<td>{{currencySymbol}} {{total_sales}}</td>
+					<table style="border-left: 1px; border-left-style: solid; border-color: #dee2e6">
+						<tr class="no-wrap">
+							<td style="border-top: 0px" scope="row">Sub Total:</td>
+							<td style="border-top: 0px">{{currencySymbol}} {{total_sales}}</td>
 						</tr>
-						<tr>
+						<tr class="no-wrap">
 							<td scope="row">Descuento:</td>
 							<td>{{currencySymbol}} {{total_discounts}}</td>
 						</tr>
-						<tr>
+						<tr class="no-wrap">
 							<td scope="row">IVA:</td>
 							<td>{{currencySymbol}} {{total_taxes}}</td>
 						</tr>{% if total_returned_iva %}
-						<tr>
+						<tr class="no-wrap">
 							<td scope="row">IVA Devuelto:</td>
 							<td>{{currencySymbol}} {{total_returned_iva}}</td>
 						</tr>
 						{% endif %}
-						<tr>
+						<tr class="no-wrap">
 							<td scope="row">Total Factura:</td>
 							<td>{{currencySymbol}} {{total_document}}</td>
 						</tr>
 					</table>
 				</td>
 			</tr>
-
 		</table>
 		{% if exemption %}
 		<div class="new-page">
@@ -171,6 +163,25 @@
 			<hr />
 			{% endfor %}
 			Siendo el total de lo exonerado por un monto de {{currencySymbol}}{{exemption.total_exempt|float|round(2)}}.
+			<hr />
+		</div>
+		{% endif %}
+		{% if references %}
+		<div {% if not exemption %}class="new-page"{% endif %}>
+			<hr />
+			<h5>Esta factura presenta las siguientes referencias:</h5>
+			{% for ref in references %}
+			<div>
+				<p>
+					Documento tipo: "{{ref['type']}}". <br />
+					Fecha de emisión: {{ref['date']}}. <br />
+					{% if ref['number'] %}Número: {{ref['number']}}.{% endif %} <br />
+					{% if ref['code'] %}Código de Referencia: {{ref['code']}}.{% endif %} <br />
+					{% if ref['reason'] %}Razón: {{ref['reason']}}.{% endif %}
+				</p>
+			</div>
+			<hr />
+			{% endfor %}
 			<hr />
 		</div>
 		{% endif %}
