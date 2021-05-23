@@ -181,6 +181,7 @@ REFERENCE_DOCUMENT_TYPE = {
 REFERENCE_CODE = {
     '01': 'Anula Documento de Referencia',
     '02': 'Corrige monto',
+    '03': 'Corrige monto',  # this one is not listed on 4.3, but I guess it's kept (and works?) for compatibility
     '04': 'Referencia a otro documento',
     '05': 'Sustituye comprobante provisional por contingencia.',
     '99': 'Otros'
