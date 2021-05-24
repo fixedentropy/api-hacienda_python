@@ -46,12 +46,18 @@
 				<td><b>Moneda:</b></td>
 				<td>{{currency.tipoMoneda}}{% if currency.tipoMoneda != "CRC" and currency.tipoCambio %} T.c. {{currency.tipoCambio}}{% endif %}</td>
 			</tr>
+			{% if order_num %}
 			<tr>
-				{% if order_num %}
 				<td><b>Nro. de Orden:</b></td>
 				<td colspan="6">{{order_num}}</td>
-				{% endif %}
 			</tr>
+			{% endif %}
+			{% if references and references[0]['number'] %}
+			<tr class="no-wrap">
+				<td><b>Afecta Factura:</b></td>
+				<td colspan="5">{{references[0]['number']}}</td>
+			</tr>
+			{% endif %}
 			{% if recipient.name %}
 			<tr>
 				<td colspan="6" style="border-left-style: solid; border-right-style: solid; border-bottom-style: solid; border-color: #dee2e6">
@@ -162,7 +168,7 @@
 			</div>
 			<hr />
 			{% endfor %}
-			Siendo el total de lo exonerado por un monto de {{currencySymbol}}{{exemption.total_exempt|float|round(2)}}.
+			Reportando un monto total exonerado de {{currencySymbol}}{{exemption.total_exempt|float|round(2)}}.
 			<hr />
 		</div>
 		{% endif %}
@@ -175,8 +181,8 @@
 				<p>
 					Documento tipo: "{{ref['type']}}". <br />
 					Fecha de emisión: {{ref['date']}}. <br />
-					{% if ref['number'] %}Número: {{ref['number']}}.{% endif %} <br />
-					{% if ref['code'] %}Código de Referencia: {{ref['code']}}.{% endif %} <br />
+					{% if ref['number'] %}Número: {{ref['number']}}.  <br />{% endif %}
+					{% if ref['code'] %}Código de Referencia: {{ref['code']}}. <br />{% endif %}
 					{% if ref['reason'] %}Razón: {{ref['reason']}}.{% endif %}
 				</p>
 			</div>
