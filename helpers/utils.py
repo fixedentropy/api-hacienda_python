@@ -144,6 +144,8 @@ def run_and_summ_collec_job(collec_cb, item_cb,
         iterable of data to be consumed by "item_cb".
     :param item_cb: callable - a callback to use for the
         entries from "collec_cb" to process them.
+    :param item_id_keys: str|tuple - a string or tuple of strings
+        with the keys that identify an item. For logging purposes.
     :param collec_cb_args: [optional] tuple - a tuple with
         parameters to be sent to "collec_cb".
     :param collec_cb_kwargs: [optional] dict - a dictionary
@@ -152,6 +154,8 @@ def run_and_summ_collec_job(collec_cb, item_cb,
     :param item_cb_kwargs_map: [optional?] dict - a
         dictionary that maps an entry from "collec_cb"'s
         properties to keyword arguments for "item_cb".
+    :param sleepme: [optional] float - the amount of seconds to
+        wait in between item function calls.
 
     :returns: str - a string with a summary for the
         executed operations.

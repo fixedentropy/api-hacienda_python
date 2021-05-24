@@ -17,7 +17,8 @@ def processing_documents():
     body = json.loads(connexion.request.data)
     result = service.processing_documents(
         body['data']['nombre_usuario'],
-        body['data']['clavelarga']
+        body['data']['clavelarga'],
+        body['data'].get('respuesta', False)
     )
     return utils.build_response(result)
 

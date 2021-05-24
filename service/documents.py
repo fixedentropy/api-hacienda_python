@@ -224,7 +224,7 @@ def save_additional_emails(key_mh, _emails, conn):
     return True
 
 
-def processing_documents(company_user, key_mh):
+def processing_documents(company_user, key_mh, answer: bool):
     document_data = documents.get_document(key_mh)
     if not document_data:
         raise InputError('document', key_mh,
@@ -241,7 +241,7 @@ def processing_documents(company_user, key_mh):
     if document_data['status'] == 'creado':  # todo: optimize
         result = validate_document(company_data, document_data)
     else:
-        result = consult_document(company_data, document_data)
+        result = consult_document(company_data, document_data, answer)
     return result
 
 
@@ -305,13 +305,13 @@ def validate_document(company_user, key_mh):
 
 # @log_section("Fetching Documents' Statuses")
 def consult_documents(env):
-    item_cb = consult_document
+    item_cb = partial(consult_document, answer=False)
     collec_cb_args = (1, env)
     return _run_and_summ_docs_job(item_cb=item_cb,
                                   collec_cb_args=collec_cb_args)
 
 
-def consult_document(company_user, key_mh):  # todo: review this...
+def consult_document(company_user, key_mh, answer: bool):  # todo: review this...
     if isinstance(company_user, str):
         company_data = companies.get_company_data(company_user)
     else:
@@ -328,10 +328,11 @@ def consult_document(company_user, key_mh):  # todo: review this...
         'status': document_data['status'],
         'data': {
             'date': date,
-            'detail': extract_answer_detail(document_data['answerxml']),
-            'xml-respuesta': document_data['answerxml']
+            'detail': extract_answer_detail(document_data['answerxml'])
         }
     }
+    if answer:
+        response['data']['xml-respuesta'] = document_data['answerxml']
 
     if not request_pool.spend():
         return response
@@ -388,8 +389,9 @@ def consult_document(company_user, key_mh):  # todo: review this...
 
     if res_answer_xml:
         response['data']['detail'] = extract_answer_detail(res_answer_xml)
+        if answer:
+            response['data']['xml-respuesta'] = res_answer_xml
 
-    response['data']['xml-respuesta'] = res_answer_xml
     return response
 
 
