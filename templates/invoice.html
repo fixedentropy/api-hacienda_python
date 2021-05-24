@@ -34,9 +34,11 @@
 		<table class="table table-sm">
 			<tr>
 				<td><b>Clave:</b></td>
-				<td>{{key_mh}}</td>
+				<td {% if not salesman_code %}colspan="5"{% endif %}>{{key_mh}}</td>
+				{% if salesman_code %}
 				<td class="no-wrap"><b>Código de Vendedor:</b></td>
 				<td colspan="3">{{salesman_code}}</td>
+				{% endif %}
 			</tr>
 			<tr>
 				<td><b>Condici&oacuten:</b></td>
@@ -65,7 +67,8 @@
 					<table style="margin: 2px 20px">
 						<tr>
 							<td style="border-top: 0px"><b>Nombre:</b></td>
-							<td style="border-top: 0px" colspan="6">{{recipient.name}}</td>
+							{% set nameLength = recipient.name|length %}
+							<td style="border-top: 0px" colspan="6">{{recipient.name if nameLength >= 100 else recipient.name.ljust(180 - nameLength).replace(' ', '&nbsp;')|safe}}</td>
 						</tr>
 						<tr>
 							<td class="no-wrap"><b>{{type_iden_recipient}}:</b></td>
@@ -112,7 +115,6 @@
 					<td class="text-right">{{line.totalLinea}}</td>
 				</tr>
 				{%endfor%}
-
 			</tbody>
 		</table>
 		<div style="text-align: center"><p> ****** Ultima Linea *******</p></div>

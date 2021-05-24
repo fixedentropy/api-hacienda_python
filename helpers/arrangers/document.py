@@ -256,9 +256,12 @@ def build_pdf_body_data(data: dict) -> dict:
         'total_taxes': utils.stringRound(data.get('totalImpuestos', '0')),
         'total_discounts': utils.stringRound(data.get('totalDescuentos', '0')),
         'total_sales': utils.stringRound(data['totalVentas']),
-        'recipient': recipient,
-        'salesman_code': data['codigoVendedor']
+        'recipient': recipient
     }
+    if 'codigoVendedor' in data:
+        body_data['salesman_code'] = data['codigoVendedor']
+    elif 'codigo_vendedor' in data:
+        body_data['salesman_code'] = data['codigo_vendedor']
 
     payment_methods_csvs = ', '.join(
         list(
