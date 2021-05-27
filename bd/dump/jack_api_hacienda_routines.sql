@@ -599,9 +599,23 @@ DELIMITER ;;
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_getDocumentByKey`(
 v_key_mh varchar(50))
 BEGIN
-	Select cp.company_user, cp.name, d.key_mh, d.status, d.isSent, d.dateanswer, d.datesign, d.document_type, 
-d.dni_receiver, d.dni_type_receiver, d.total_document, d.email, d.email_costs, CONVERT(d.signxml USING utf8) signxml,
-CONVERT(d.answerxml USING utf8) answerxml , CONVERT(d.pdfdocument USING utf8) as pdfdocument 
+	Select cp.company_user,
+		cp.name AS company_name,
+		cp.id AS company_id,
+		d.key_mh,
+		d.status,
+		d.isSent,
+		d.dateanswer,
+		d.datesign,
+		d.document_type,
+		d.dni_receiver,
+		d.dni_type_receiver,
+		d.total_document,
+		d.email,
+		d.email_costs,
+		CONVERT(d.signxml USING utf8) signxml,
+		CONVERT(d.answerxml USING utf8) answerxml,
+		CONVERT(d.pdfdocument USING utf8) as pdfdocument 
 from documents d 
 inner join companies cp on d.company_id = cp.id  where d.key_mh = v_key_mh;
 END ;;
@@ -1905,4 +1919,184 @@ BEGIN
 END //
 
 
+DELIMITER ;
+
+-- --------------------------------------------------------------------
+-- User Templates ------------------------------------------------
+-- --------------------------------------------------------------------
+DELIMITER //
+-- Template Types --
+DROP PROCEDURE IF EXISTS usp_templatetype_insert //
+CREATE PROCEDURE usp_templatetype_insert(
+	p_description VARCHAR(50)
+)
+BEGIN
+	INSERT INTO templatetype (description)
+	VALUES (p_description);
+END //
+
+
+DROP PROCEDURE IF EXISTS usp_templatetype_updateById //
+CREATE PROCEDURE usp_templatetype_updateById(
+	p_id TINYINT UNSIGNED,
+	p_description VARCHAR(50)
+)
+BEGIN
+	UPDATE templatetype
+	SET description = p_description
+	WHERE id = p_id;
+END //
+
+
+DROP PROCEDURE IF EXISTS usp_templatetype_selectAll //
+CREATE PROCEDURE usp_templatetype_selectAll()
+BEGIN
+	SELECT *
+	FROM templatetype;
+END //
+
+
+DROP PROCEDURE IF EXISTS usp_templatetype_selectById //
+CREATE PROCEDURE usp_templatetype_selectById(
+	p_id TINYINT UNSIGNED
+)
+BEGIN
+	SELECT *
+	FROM templatetype
+	WHERE id = p_id;
+END //
+
+
+DROP PROCEDURE IF EXISTS usp_templatetype_selectByDescription //
+CREATE PROCEDURE usp_templatetype_selectByDescription(
+	p_description VARCHAR(50)
+)
+BEGIN
+	SELECT *
+	FROM templatetype
+	WHERE description = p_description;
+END //
+-- -----------------
+
+-- Templates --
+DROP PROCEDURE IF EXISTS usp_template_insert //
+CREATE PROCEDURE usp_template_insert(
+	p_idtemplatetype TINYINT UNSIGNED,
+	p_idcompany INT,
+	p_data MEDIUMBLOB
+)
+BEGIN
+	INSERT INTO template (idtemplatetype, idcompany, `data`)
+	VALUES (p_idtemplatetype, p_idcompany, p_data);
+END //
+
+
+DROP PROCEDURE IF EXISTS usp_template_updateById //
+CREATE PROCEDURE usp_template_updateById(
+	p_id INT UNSIGNED,
+	p_idtemplatetype TINYINT UNSIGNED,
+	p_idcompany INT,
+	p_data MEDIUMBLOB
+)
+BEGIN
+	UPDATE template
+	SET idtemplatetype = p_idtemplatetype,
+		idcompany = p_idcompany,
+		`data` = p_data
+	WHERE id = p_id;
+END //
+
+
+DROP PROCEDURE IF EXISTS usp_template_deleteById //
+CREATE PROCEDURE usp_template_deleteById(
+	p_id INT UNSIGNED
+)
+BEGIN
+	DELETE FROM template
+	WHERE id = p_id;
+END //
+
+
+DROP PROCEDURE IF EXISTS usp_template_selectCommon //
+CREATE PROCEDURE usp_template_selectCommon(
+	p_idtemplatetype TINYINT UNSIGNED
+)
+BEGIN
+	SELECT id,
+		idtemplatetype,
+		idcompany,
+		CONVERT(`data` USING utf8) AS `data`
+	FROM template
+	WHERE idcompany IS NULL
+		AND (p_idtemplatetype IS NULL
+			OR p_idtemplatetype = idtemplatetype);
+END //
+
+
+DROP PROCEDURE IF EXISTS usp_template_selectById //
+CREATE PROCEDURE usp_template_selectById(
+	p_id INT UNSIGNED
+)
+BEGIN
+	SELECT id,
+		idtemplatetype,
+		idcompany
+	FROM template
+	WHERE id = p_id;
+END //
+
+
+DROP PROCEDURE IF EXISTS usp_template_selectByUQ_Template //
+CREATE PROCEDURE usp_template_selectByUQ_Template(
+	p_idtemplatetype TINYINT UNSIGNED,
+	p_idcompany INT
+)
+BEGIN
+	SELECT id,
+		idtemplatetype,
+		idcompany,
+		CONVERT(`data` USING utf8) AS `data`
+	FROM template
+	WHERE idtemplatetype = p_idtemplatetype
+		AND idcompany = p_idcompany;
+END //
+
+
+DROP PROCEDURE IF EXISTS usp_template_selectByTemplateType //
+CREATE PROCEDURE usp_template_selectByTemplateType(
+	p_idtemplatetype TINYINT UNSIGNED
+)
+BEGIN
+	SELECT id,
+		idtemplatetype,
+		idcompany
+	FROM template
+	WHERE idtemplatetype = p_idtemplatetype;
+END //
+
+
+DROP PROCEDURE IF EXISTS usp_template_selectByCompany //
+CREATE PROCEDURE usp_template_selectByCompany(
+	p_idcompany INT
+)
+BEGIN
+	SELECT id,
+		idtemplatetype,
+		idcompany,
+		CONVERT(`data` USING utf8) AS `data`
+	FROM template
+	WHERE idcompany = p_idcompany;
+END //
+
+
+DROP PROCEDURE IF EXISTS usp_template_getDataById //
+CREATE PROCEDURE usp_template_getDataById(
+	p_id INT UNSIGNED
+)
+BEGIN
+	SELECT CONVERT(`data` USING utf8) AS `data`
+	FROM template
+	WHERE id = p_id;
+END //
+-- ------------
 DELIMITER ;
