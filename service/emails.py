@@ -104,11 +104,9 @@ Tipo Plantilla: {}'''.format(document['company_name'], TEMPLATE_TYPES['email']))
         'doc_type': doc_type_desc,
         'issuer': document['company_name']
     }
-    email_content = render_template_string(
-        email_template, **template_context
-    )
+    email_content = 'Adjuntamos los datos de la ' + fe_enums.tagNamePDF[document['document_type']]
     content = {
-        'plain': _html_to_plain(email_content),
+        'plain': email_content,
         'html': email_content
     }
 
