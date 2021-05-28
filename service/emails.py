@@ -2,7 +2,7 @@ import base64
 from logging import getLogger
 
 from bs4 import BeautifulSoup
-from flask import render_template_string
+from jinja2 import Template
 
 from infrastructure import company_smtp
 from infrastructure import documents
@@ -100,13 +100,14 @@ Tipo Plantilla: {}'''.format(document['company_name'], TEMPLATE_TYPES['email']))
         document['company_name']
     )
 
+    template_content = Template(email_template)
     template_context = {
         'doc_type': doc_type_desc,
         'issuer': document['company_name']
     }
-    email_content = 'Adjuntamos los datos de la ' + fe_enums.tagNamePDF[document['document_type']]
+    email_content = template_content.render(template_context)
     content = {
-        'plain': email_content,
+        'plain': _html_to_plain(email_content),
         'html': email_content
     }
 
