@@ -80,7 +80,7 @@ electronico para el receptor. """
         if email_template is None:
             _logger.error('''***Error: no se encontro plantilla para generar email.
 Compañia emisora: {}
-Tipo Plantilla: {}'''.format(document['name'], TEMPLATE_TYPES['email']))
+Tipo Plantilla: {}'''.format(document['company_name'], TEMPLATE_TYPES['email']))
             raise ServerError(
                 error_code=InternalErrorCodes.INTERNAL_ERROR
             )

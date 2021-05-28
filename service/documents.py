@@ -359,6 +359,7 @@ def consult_document(company_user, key_mh, answer: bool):  # todo: review this..
     if res_answer_xml is not None:  # got an xml? save it
         documents.update_document(company_data['company_user'], document_data['key_mh'], res_answer_xml,
                                   res_doc_status, date)
+        document_data['answerxml'] = res_answer_xml
     else:  # check if we already had an xml...
         doc_answer_xml = document_data['answerxml']
         if doc_answer_xml is not None:  # If we had one, do not overwrite it, but update answer date
