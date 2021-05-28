@@ -355,6 +355,7 @@ def consult_document(company_user, key_mh, answer: bool):  # todo: review this..
     res_doc_status = response_json.get('ind-estado')
     res_answer_xml = response_json.get('respuesta-xml')
 
+    document_data['status'] = res_doc_status
     if res_answer_xml is not None:  # got an xml? save it
         documents.update_document(company_data['company_user'], document_data['key_mh'], res_answer_xml,
                                   res_doc_status, date)

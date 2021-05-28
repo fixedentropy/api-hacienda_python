@@ -1,19 +1,33 @@
 import base64
+from logging import getLogger
+
+from bs4 import BeautifulSoup
+from flask import render_template_string
+
 from infrastructure import company_smtp
 from infrastructure import documents
+from infrastructure import template as dao_template
 from configuration import globalsettings
 from infrastructure.emails import send_email
 from service import fe_enums
-from helpers.errors.enums import InputErrorCodes
-from helpers.errors.exceptions import InputError
+from helpers.errors.enums import InputErrorCodes, InternalErrorCodes
+from helpers.errors.exceptions import InputError, ServerError
 from helpers.utils import build_response_data
 from helpers.validations.document import KEY_PARTS_SLICES
 
 cfg = globalsettings.cfg
+TEMPLATE_TYPES = {
+    'email': 1
+}
+_logger = getLogger(__name__)
 
 
-def sent_email_fe(data):
-    document = documents.get_document(data['key_mh'])
+def sent_email_fe(data: dict):
+    if 'email' not in data:  # arbitrary af check
+        document = documents.get_document(data['key_mh'])
+    else:
+        document = data.copy()
+
     if not document:
         raise InputError('document', data['key_mh'], error_code=InputErrorCodes.NO_RECORD_FOUND)
 
@@ -58,6 +72,20 @@ electronico para el receptor. """
         port = cfg['email']['port']
         encrypt_type = cfg['email']['encrypt_type']
 
+    email_template = dao_template.select_unique_template(
+        TEMPLATE_TYPES['email'], document['company_id']
+    )
+    if email_template is None:
+        email_template = dao_template.select_common_templates(TEMPLATE_TYPES['email'])
+        if email_template is None:
+            _logger.error('''***Error: no se encontro plantilla para generar email.
+Compañia emisora: {}
+Tipo Plantilla: {}'''.format(document['name'], TEMPLATE_TYPES['email']))
+            raise ServerError(
+                error_code=InternalErrorCodes.INTERNAL_ERROR
+            )
+    email_template = base64.b64decode(email_template).decode('utf-8')
+
     primary_recipient = document['email']
     receivers = [primary_recipient]
     additional_recipients = documents.get_additional_emails(data['key_mh'])
@@ -65,13 +93,24 @@ electronico para el receptor. """
         receivers += list(x['email'] for x in additional_recipients)
 
     sequence_slice = KEY_PARTS_SLICES['sequence']
+    doc_type_desc = fe_enums.tagNamePDF[document['document_type']]
     subject = "Envio de {}: {} del Emisor: {}".format(
-        fe_enums.tagNamePDF[document['document_type']],
+        doc_type_desc,
         document['key_mh'][sequence_slice],
-        document['name']
+        document['company_name']
     )
 
-    body = 'Adjuntamos los datos de la ' + fe_enums.tagNamePDF[document['document_type']]
+    template_context = {
+        'doc_type': doc_type_desc,
+        'issuer': document['company_name']
+    }
+    email_content = render_template_string(
+        email_template, **template_context
+    )
+    content = {
+        'plain': _html_to_plain(email_content),
+        'html': email_content
+    }
 
     signed_name = document['document_type'] + "_" + document['key_mh'] + '.xml'
     signed_file = base64.b64decode(document['signxml'])
@@ -85,13 +124,13 @@ electronico para el receptor. """
     ]
 
     if document['pdfdocument'] is not None:
-        pdf_name = fe_enums.tagNamePDF[document['document_type']] + '_' + document['key_mh'] + '.pdf'
+        pdf_name = document['document_type'] + '_' + document['key_mh'] + '.pdf'
         pdf_file = base64.b64decode(document['pdfdocument'])
 
         attachments.append({'name': pdf_name, 'file': pdf_file})
 
     send_email(receivers, host, sender, port, encrypt_type,
-               username, password, subject, body, attachments)
+               username, password, subject, content, attachments)
     return build_response_data({'message': 'Email successfully sent.'})
 
 
@@ -106,7 +145,10 @@ def send_custom_email(data, file1, file2, file3):
         raise InputError(error_code=InputErrorCodes.MISSING_PROPERTY, message='No recipient(s) specified.')
 
     subject = data['subject']
-    content = data['content']
+    content = {
+        'plain': _html_to_plain(data['content']),
+        'html': data['content']
+    }
     # wish these were just a list...
     # files are optional, so, let's create a list containing any files given
     attachments = []
@@ -134,3 +176,15 @@ def send_custom_email(data, file1, file2, file3):
     send_email(receivers, host, sender, port, encrypt_type,
                username, password, subject, content, attachments)
     return build_response_data({'message': 'email sent successfully'})
+
+
+def _html_to_plain(html: str) -> str:
+    soup = BeautifulSoup(html, features='html.parser')
+
+    for garbage in soup(['head','style','script']):
+        garbage.extract()
+
+    text = soup.get_text()
+    lines = (line.strip() for line in text.splitlines())
+    chunks = (phrase.strip() for line in lines for phrase in line.split('  '))
+    return '\n'.join(chunk for chunk in chunks if chunk)
