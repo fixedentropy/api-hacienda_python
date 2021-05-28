@@ -52,3 +52,5 @@ argon2-cffi==20.1.0
 elementpath==2.2.2
 PyNaCl==1.4.0
 xmlschema==1.6.2
+beautifulsoup4==4.9.3
+soupsieve==2.2.1

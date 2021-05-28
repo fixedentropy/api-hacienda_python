@@ -12,8 +12,10 @@ from mimetypes import guess_type
 _logger = logging.getLogger(__name__)
 
 
-def send_email(receiver, host, sender, port, encrypt_type,
-               user, password, subject, content, attachments):  # encrypt_type not used.
+def send_email(
+        receiver, host, sender, port, encrypt_type,
+        user, password, subject, content, attachments
+):
     # return True  # email killswitch
     # recipient circus 'cuz don't know python well enough
     # use deque for this...
@@ -23,7 +25,7 @@ def send_email(receiver, host, sender, port, encrypt_type,
 
     # Create a multipart message and set headers
     # todo: use 'alternative' subtype for crazy formatting?
-    message = MIMEMultipart()
+    message = MIMEMultipart(_subtype='alternative')
     message["From"] = sender
     message["To"] = recipient_email
     message["Subject"] = subject
@@ -35,8 +37,10 @@ def send_email(receiver, host, sender, port, encrypt_type,
         message["Bcc"] = ', '.join(bccs)  # Recommended for mass emails
 
     # Add body to email
+
     # todo: use html subtype and specify utf8 charset? move this to last if using html
-    message.attach(MIMEText(content, "plain"))
+    message.attach(MIMEText(content['plain'], "plain"))
+    message.attach(MIMEText(content['html'], 'html', _charset='utf-8'))
 
     if isinstance(attachments, list):
         for att in attachments:
@@ -62,7 +66,9 @@ def send_email(receiver, host, sender, port, encrypt_type,
         server.starttls(context=context)
         server.ehlo()
         server.login(user, password)
-        server.sendmail(sender, receiver, text)
+        refused = server.sendmail(sender, receiver, text)
+        if refused:
+            _logger.error(str(refused))
     return True
 
 
