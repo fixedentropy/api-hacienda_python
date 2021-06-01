@@ -45,6 +45,11 @@ def arrange_xml_data(data: dict) -> dict:
     xml_data['fechafactura'] = parse_datetime(
         data['fechafactura'], 'fechafactura'
     ).isoformat()
+    if xml_data['tipo'] == 'FEC':
+        recipient = xml_data.get('receptor')
+        if recipient and 'codigoActividad' in recipient:
+            xml_data['codigoActividad'] = recipient['codigoActividad']
+
     if 'referencia' in xml_data:
         references = xml_data.pop('referencia')
         if not isinstance(references, str):  # if str, it's not useful, so let it out of our data

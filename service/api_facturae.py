@@ -14,7 +14,7 @@ import time
 import logging
 import random
 
-from xml.sax.saxutils import escape
+from xml.sax.saxutils import escape, quoteattr
 from .xades.context2 import XAdESContext2, PolicyId2, create_xades_epes_signature
 
 from helpers.errors.enums import InternalErrorCodes
@@ -168,7 +168,7 @@ def company_xml(sb, issuing_company, document_type):
 
             if issuing_company.get('nombreComercial'):
                 sb.append('<NombreComercial>{}</NombreComercial>'
-                          .format(issuing_company['nombreComercial']))
+                          .format(escape(issuing_company['nombreComercial'])))
 
             if document_type != 'FEE':
                 if issuing_company.get('provincia') and issuing_company.get('canton') and issuing_company.get(
@@ -262,7 +262,7 @@ def receptor_xml(sb, receiver_company, document_type):
 
                 if receiver_company.get('nombreComercial'):
                     sb.append('<NombreComercial>{}</NombreComercial>'
-                              .format(receiver_company['nombreComercial']))
+                              .format(escape(receiver_company['nombreComercial'])))
 
                 if document_type != 'FEE':
                     if receiver_company.get('provincia') and receiver_company.get('canton') and receiver_company.get(
@@ -319,7 +319,7 @@ def lines_xml(sb, lines, document_type):
             sb.append('<UnidadMedidaComercial>{}</UnidadMedidaComercial>'
                       .format(v['unidadMedidaComercial']))
         if 'detalle' in v:
-            sb.append('<Detalle>' + v['detalle'] + '</Detalle>')
+            sb.append('<Detalle>' + escape(v['detalle']) + '</Detalle>')
         sb.append('<PrecioUnitario>' + str(v['precioUnitario']) + '</PrecioUnitario>')
         sb.append('<MontoTotal>' + str(v['montoTotal']) + '</MontoTotal>')
 
@@ -329,7 +329,7 @@ def lines_xml(sb, lines, document_type):
                 sb.append('<MontoDescuento>' +
                           str(b['monto']) + '</MontoDescuento>')
                 sb.append('<NaturalezaDescuento>' +
-                          str(b['descripcionDescuento']) + '</NaturalezaDescuento>')
+                          escape(str(b['descripcionDescuento'])) + '</NaturalezaDescuento>')
                 sb.append('</Descuento>')
 
         sb.append('<SubTotal>' + str(v['subtotal']) + '</SubTotal>')
@@ -363,7 +363,7 @@ def lines_xml(sb, lines, document_type):
                             sb.append('<TipoDocumento>' + str(cut['Tipodocumento']) + '</TipoDocumento>')
                             sb.append('<NumeroDocumento>' + str(cut['NumeroDocumento']) + '</NumeroDocumento>')
                             sb.append(
-                                '<NombreInstitucion>' + str(cut['NombreInstitucion']) + '</NombreInstitucion>')
+                                '<NombreInstitucion>' + escape(str(cut['NombreInstitucion'])) + '</NombreInstitucion>')
                             sb.append('<FechaEmision>' + str(cut['FechaEmision']) + '</FechaEmision>')
                             sb.append('<PorcentajeExoneracion>' + str(
                                 cut['porcentajeExoneracion']) + '</PorcentajeExoneracion>')
@@ -379,7 +379,7 @@ def lines_xml(sb, lines, document_type):
     sb.append('</DetalleServicio>')
 
 
-def other_charges(sb, otros_cargos):
+def sb_other_charges(sb, otros_cargos):
     for otro_cargo in otros_cargos:
         sb.append('<OtrosCargos>')
         sb.append('<TipoDocumento>' +
@@ -393,11 +393,11 @@ def other_charges(sb, otros_cargos):
 
         if 'nombreTercero' in otro_cargo:
             sb.append('<NombreTercero>' +
-                      otro_cargo['nombreTercero'] +
+                      escape(otro_cargo['nombreTercero']) +
                       '</NombreTercero>')
 
         sb.append('<Detalle>' +
-                  otro_cargo['detalle'] +
+                  escape(otro_cargo['detalle']) +
                   '</Detalle>')
 
         if 'porcentaje' in otro_cargo:
@@ -455,7 +455,7 @@ def gen_xml_v43(company_data, document_type, key_mh,
     lines_xml(sb, lines, document_type)
 
     if otros_cargos:
-        other_charges(sb, otros_cargos)
+        sb_other_charges(sb, otros_cargos)
 
     sb.append('<ResumenFactura>')
     sb.append('<CodigoTipoMoneda><CodigoMoneda>' +
@@ -502,7 +502,7 @@ def gen_xml_v43(company_data, document_type, key_mh,
             if 'codigo' in ref:
                 sb.append('<Codigo>' + str(ref['codigo']) + '</Codigo>')
             if 'razon' in ref:
-                sb.append('<Razon>' + str(ref['razon']) + '</Razon>')
+                sb.append('<Razon>' + escape(str(ref['razon'])) + '</Razon>')
             sb.append('</InformacionReferencia>')
 
     if invoice_comments:
@@ -510,9 +510,9 @@ def gen_xml_v43(company_data, document_type, key_mh,
         _other_text = invoice_comments.pop('otroTexto')
         if isinstance(_other_text, list):
             for _ot in _other_text:
-                sb.append('<OtroTexto>' + str(_ot) + '</OtroTexto>')
+                sb.append('<OtroTexto>' + escape(str(_ot)) + '</OtroTexto>')
         else:
-            sb.append('<OtroTexto>' + str(_other_text) + ' </OtroTexto>')
+            sb.append('<OtroTexto>' + escape(str(_other_text)) + ' </OtroTexto>')
 
         # killing off OtroContenido 'cuz not used. This section can handle it when it's relevant
         if 'otroContenido' in invoice_comments:
@@ -521,7 +521,7 @@ def gen_xml_v43(company_data, document_type, key_mh,
 
         # for wallmart stuff
         for key, value in invoice_comments.items():
-            sb.append('<OtroTexto codigo="' + str(key) + '">' + str(value) + '</OtroTexto>')
+            sb.append('<OtroTexto codigo="' + quoteattr(str(key)) + '">' + escape(str(value)) + '</OtroTexto>')
 
         sb.append('</Otros>')
 

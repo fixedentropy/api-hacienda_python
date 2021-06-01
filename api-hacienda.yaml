@@ -279,7 +279,7 @@ components:
           type: string
         porcentajeExoneracion:
           type: string
-          #pattern: ^([0-9]|[1][0-3])$ # digit range 0-13
+          pattern: ^([0-9]|[1][0-3])$ # digit range 0-13
         montoExoneracion:
           type: string
       required:
