@@ -106,10 +106,7 @@ Tipo Plantilla: {}'''.format(document['company_name'], TEMPLATE_TYPES['email']))
         'issuer': document['company_name']
     }
     email_content = template_content.render(template_context)
-    content = {
-        'plain': _html_to_plain(email_content),
-        'html': email_content
-    }
+    content = email_content
 
     signed_name = document['document_type'] + "_" + document['key_mh'] + '.xml'
     signed_file = base64.b64decode(document['signxml'])

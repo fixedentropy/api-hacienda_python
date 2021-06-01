@@ -24,8 +24,7 @@ def send_email(
     receiver.insert(0, recipient_email)
 
     # Create a multipart message and set headers
-    # todo: use 'alternative' subtype for crazy formatting?
-    message = MIMEMultipart(_subtype='alternative')
+    message = MIMEMultipart()
     message["From"] = sender
     message["To"] = recipient_email
     message["Subject"] = subject
@@ -37,10 +36,6 @@ def send_email(
         message["Bcc"] = ', '.join(bccs)  # Recommended for mass emails
 
     # Add body to email
-
-    # todo: use html subtype and specify utf8 charset? move this to last if using html
-    message.attach(MIMEText(content['plain'], "plain"))
-    message.attach(MIMEText(content['html'], 'html', _charset='utf-8'))
 
     if isinstance(attachments, list):
         for att in attachments:
@@ -54,7 +49,7 @@ def send_email(
             part = create_email_files(file, name)
             message.attach(part)
 
-    # Add attachment to message and convert message to string
+    message.attach(MIMEText(content, 'html', _charset='utf-8'))
 
     text = message.as_string()
 
