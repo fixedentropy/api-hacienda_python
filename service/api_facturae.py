@@ -521,7 +521,10 @@ def gen_xml_v43(company_data, document_type, key_mh,
 
         # for wallmart stuff
         for key, value in invoice_comments.items():
-            sb.append('<OtroTexto codigo="' + quoteattr(str(key)) + '">' + escape(str(value)) + '</OtroTexto>')
+            sb.append('<OtroTexto codigo={}>{}</OtroTexto>'.format(
+                quoteattr(str(key)),
+                escape(str(value))
+            ))
 
         sb.append('</Otros>')
 
