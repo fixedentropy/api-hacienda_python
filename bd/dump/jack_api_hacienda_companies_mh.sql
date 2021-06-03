@@ -24,16 +24,17 @@ DROP TABLE IF EXISTS `companies_mh`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `companies_mh` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
+  `company_api` int(11) DEFAULT NULL,
   `user_mh` varchar(100) DEFAULT NULL,
   `pass_mh` varchar(100) DEFAULT NULL,
   `signature` blob,
   `logo` longblob,
   `pin_sig` varchar(4) DEFAULT NULL,
-  `company_api` int(11) DEFAULT NULL,
   `env` varchar(45) DEFAULT NULL,
   `expiration_date` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `id_idx` (`company_api`),
+  KEY `IDX_Companies_MHEnv` (`env`),
   CONSTRAINT `id` FOREIGN KEY (`company_api`) REFERENCES `companies` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=34 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;

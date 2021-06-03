@@ -41,6 +41,11 @@ CREATE TABLE `message` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `UQ_message` (`key_mh`, `recipient_seq_number`),
   KEY `FK_message_companies` (`company_id`),
+  KEY `IDX_Message_Status (`status`),
+  KEY `IDX_Message_Code` (`code`),
+  KEY `IDX_Message_IssueDate (`issue_date`),
+  KEY `IDX_Message_AnswerDate (`answer_date`),
+  KEY `IDX_Message_IssuerIdnNum (`issuer_idn_num`),
   CONSTRAINT `FK_message_companies` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
