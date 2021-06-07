@@ -1,16 +1,19 @@
 """Module that provides reusable functions for communicating with the database in a generic way. Hopefully...
 """
 
-import json
+import logging
 from enum import Enum
+from typing import Union
+
 from pymysql import cursors
 from pymysql.err import OperationalError, InternalError, DatabaseError
-import logging
-# todo: config logging, breaking returns into exception throws, documentation
 
 from extensions import mysql
 from helpers.errors.enums import DBAdapterErrorCodes
 from helpers.errors.exceptions import DatabaseError as IBDatabaseError
+
+
+# todo: config logging, breaking returns into exception throws, documentation
 
 
 class DbAdapterError(IBDatabaseError):
@@ -143,9 +146,8 @@ def _fetch_from_proc(fetchtype: FetchType, buffered: bool,
         raised during data retrieval or an 'Exception' is raised.
     """
     data = [] if fetchtype is FetchType.ALL else None
-    conn = connectToMySql()
+    conn = connect_to_my_sql()
     try:
-        cursortype = None
         if buffered:
             cursortype = cursors.Cursor
         else:
@@ -186,14 +188,10 @@ def _fetch_from_proc(fetchtype: FetchType, buffered: bool,
             error_code=DBAdapterErrorCodes.DBA_GENERAL_DATABASE
         ) from e
 
-    finally:
-        conn.close()
-
     return data
 
 
-def execute_proc(proc_name: str, args: tuple = (), conn=None,
-                 assert_unique: bool = False) -> bool:
+def execute_proc(proc_name: str, args: tuple = (), assert_unique: bool = False) -> Union[bool, int]:
     """
     Executes the given procedure on the database.
 
@@ -205,8 +203,6 @@ def execute_proc(proc_name: str, args: tuple = (), conn=None,
     :param proc_name: str - The procedure name to be executed.
     :param args: [optional] tuple - The arguments to be sent to the
         procedure.
-    :param conn: [optional] object - An instance of a PyMySQL
-        database connection to get a cursor from.
     :param assert_unique: [optional] bool
     
         - True if the affected rows by the procedure call MUST
@@ -220,11 +216,10 @@ def execute_proc(proc_name: str, args: tuple = (), conn=None,
     :raises pymysql.err.DatabaseError: when an error occurs.
     """
     return _execute(exec_string=proc_name, args=args,
-                    conn=conn, assert_unique=assert_unique, callproc=True)
+                    assert_unique=assert_unique, callproc=True)
 
 
-def execute_sql(sql_statement: str, args: tuple = (), conn=None,
-                assert_unique: bool = False) -> bool:
+def execute_sql(sql_statement: str, args: tuple = (), assert_unique: bool = False) -> Union[bool, int]:
     """
     Executes the provided SQL Statement string on the database
 
@@ -237,8 +232,6 @@ def execute_sql(sql_statement: str, args: tuple = (), conn=None,
         %s can be used as placeholder for arguments.
     :param args: [optional] tuple - the arguments to be parsed into
         the query string.
-    :param conn: [optional] object - an instance of a PyMySQL
-        database connection to get a cursor from.
     :param assert_unique: [optional] bool
     
         - True if the affected rows by the procedure call MUST
@@ -252,12 +245,11 @@ def execute_sql(sql_statement: str, args: tuple = (), conn=None,
     :raises pymysql.err.DatabaseError: when an error occurs.
     """
     return _execute(exec_string=sql_statement, args=args,
-                    conn=conn, assert_unique=assert_unique)
+                    assert_unique=assert_unique)
 
 
-def _execute(exec_string: str, args: tuple = (), conn=None,
-             assert_unique: bool = False,
-             callproc: bool = False) -> bool:
+def _execute(exec_string: str, args: tuple = (), assert_unique: bool = False,
+             callproc: bool = False) -> Union[bool, int]:
     """
     Executes the given string either as an SQL Statement or as an
         Stored Procedure.
@@ -273,8 +265,6 @@ def _execute(exec_string: str, args: tuple = (), conn=None,
         Statements or the name of a Procedure.
     :param args: [optional] tuple - The arguments to be sent to the
         'exec_string'
-    :param conn: [optional] object - An instance of a PyMySQL
-        database connection to get a cursor from.
     :param assert_unique: [optional] bool
     
         - True if the affectedrows by the procedure call MUST be
@@ -290,13 +280,7 @@ def _execute(exec_string: str, args: tuple = (), conn=None,
         exceptions were raised.
     :raises pymysql.err.DatabaseError: when an error occurs.
     """
-    # controls whether we are responsible for committing and closing
-    # the connection or if an external manager is in charge of that.
-    self_managed = False
-
-    if conn is None:  # if no connection was received, we make our own and we must manage it
-        conn = connectToMySql()
-        self_managed = True
+    conn = connect_to_my_sql()
 
     try:
         with conn.cursor() as cur:
@@ -309,40 +293,39 @@ def _execute(exec_string: str, args: tuple = (), conn=None,
 
                 if affected != 1:
                     errmsg = _log_unique_assertion_failure(
-                        affected < 1, callproc, exec_string, str(args))
-                    if self_managed:
-                        conn.rollback()
+                        affected < 1, callproc, exec_string, str(args)
+                    )
                     raise NonUniqueResultError(errmsg)
             elif callproc:
                 cur.callproc(exec_string, args)
             else:
                 cur.execute(exec_string, args)
 
-            if self_managed:
-                conn.commit()
+            if callproc:
+                cur.execute('SELECT LAST_INSERT_ID()')
+                result = cur.fetchone()
+                last_id = result[0] if result else 0
+            else:
+                last_id = cur.lastrowid
 
     except NonUniqueResultError as nure:
         logging.error(str(nure))  # todo
-        if self_managed:
-            conn.rollback()
+        conn.rollback()
         raise DbAdapterError(
             str(nure),
             error_code=DBAdapterErrorCodes.DBA_NON_UNIQUE_OPERATION
         ) from nure
     except DatabaseError as dbe:
         logging.error(str(dbe))  # todo
-        if self_managed:
-            conn.rollback()
+        conn.rollback()
         raise DbAdapterError(
             error_code=DBAdapterErrorCodes.DBA_STATEMENT_EXECUTION
         ) from dbe
+    except Exception as ex:
+        logging.error(str(ex))
+        raise
 
-    finally:
-        if self_managed:
-            conn.close()
-            conn = None
-
-    return True
+    return last_id if last_id > 0 else True
 
 
 def _log_unique_assertion_failure(no_rows_affected: bool,
@@ -367,10 +350,6 @@ def _log_unique_assertion_failure(no_rows_affected: bool,
     :returns: str - the custom message built from the arguments received.
     """
 
-    message_main = ''
-    message_reason = ''
-    message_detail = ''
-
     if is_proc:
         message_main = ('Procedure: {} was expected to produce'
                         ' a unique matched registry, but').format(
@@ -392,7 +371,25 @@ def _log_unique_assertion_failure(no_rows_affected: bool,
     return message
 
 
-def connectToMySql():
+def begin_transaction():
+    conn = connect_to_my_sql()
+    conn.begin()
+    return True
+
+
+def rollback():
+    conn = connect_to_my_sql()
+    conn.rollback()
+    return True
+
+
+def commit():
+    conn = connect_to_my_sql()
+    conn.commit()
+    return True
+
+
+def connect_to_my_sql():
     """
     Returns a PyMySql Connection instance to be used as the
         database connection.
@@ -403,9 +400,8 @@ def connectToMySql():
     :raises: pymysql.err.DatabaseError - when an error occurs
         during connection to the database.
     """
-    conn = None
     try:
-        conn = mysql.connect()
+        conn = mysql.get_db()
     except (OperationalError, InternalError) as e:
         logging.error(str(e))  # todo
         raise DbAdapterError(
@@ -413,3 +409,6 @@ def connectToMySql():
         ) from e
 
     return conn
+
+
+

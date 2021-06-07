@@ -1,12 +1,11 @@
-import json
 import base64
-from service import utils_mh
-from service import utils
-from infrastructure import companies
-from helpers.errors.exceptions import InputError
+
 from helpers.errors.enums import InputErrorCodes
+from helpers.errors.exceptions import InputError
 from helpers.utils import build_response_data
-from flask import g
+from infrastructure import companies
+from infrastructure.dbadapter import commit as db_commit
+from service import utils_mh
 
 
 def create_company(data, files):
@@ -59,6 +58,7 @@ def create_company(data, files):
                              _activity_code, _is_active, _user_mh,
                              _pass_mh, b64signature, _logo, _pin,
                              _env, _expiration_date)
+    db_commit()
 
     return build_response_data({'message': 'company created successfully!'})
 
@@ -74,6 +74,7 @@ def get_list_companies(id_company=0):
 
 def delete_company(id_company):
     companies.delete_company_data(id_company)
+    db_commit()
     return build_response_data({'message': 'The company has been succesfully deleted.'})
 
 
@@ -124,6 +125,7 @@ def modify_company(data, files):
                                       _is_active, _user_mh, _pass_mh,
                                       b64signature, _logo, _pin, _env,
                                       _expiration_date)
+    db_commit()
 
     return build_response_data({'message': 'company modified successfully!'})
 
@@ -135,6 +137,7 @@ def patch_company(company_id, data, files):
     if 'estado' in data:
         state = data['estado']
         companies.update_state(company_id, state)
+        db_commit()
         return build_response_data({
             'message': 'Company patch succesful',
             'data': {

@@ -4,26 +4,25 @@ from functools import partial
 
 from lxml import etree
 
-from . import api_facturae
-from . import makepdf
-from . import emails
-from infrastructure import companies
-from infrastructure import documents
-from infrastructure import request_pool
-from infrastructure.dbadapter import connectToMySql
+from extensions import mysql
+from helpers.arrangers import document as document_arranger
 from helpers.errors.enums import InputErrorCodes, InternalErrorCodes
 from helpers.errors.exceptions import InputError, ServerError
 from helpers.utils import build_response_data, run_and_summ_collec_job, get_smtp_error_code
-from helpers.debugging import log_section
 from helpers.validations import document as document_validator
-from helpers.arrangers import document as document_arranger
+from infrastructure import companies
+from infrastructure import documents
+from infrastructure import request_pool
+from infrastructure.dbadapter import commit as db_commit
+from . import api_facturae
+from . import emails
+from . import makepdf
 
 docLogger = logging.getLogger(__name__)
 
 
 def makeqr(_key_mh: str, date_doc: str):
     from base64 import b64encode
-    from hashlib import sha3_512
     import qrcode
     from io import BytesIO
 
@@ -152,26 +151,18 @@ def create_document(data):
 
         pdfencoded = base64.b64encode(pdf)
 
-    # return {'status': 'procesando...'}
-    # Managing connection here...
-    conn = connectToMySql()
+    documents.save_document(_company_user, _key_mh, xmlencoded,
+                            'creado', datecr, _type_document,
+                            _receptor, _total_document, _total_taxes,
+                            pdfencoded, _email, _email_costs)
 
-    try:
-        documents.save_document(_company_user, _key_mh, xmlencoded,
-                                'creado', datecr, _type_document,
-                                _receptor, _total_document, _total_taxes,
-                                pdfencoded, _email, _email_costs,
-                                connection=conn)
+    _id_company = company_data['id']
 
-        _id_company = company_data['id']
+    if len(_additional_emails) > 0:
+        save_additional_emails(_key_mh, _additional_emails)
 
-        if len(_additional_emails) > 0:
-            save_additional_emails(_key_mh, _additional_emails, conn)
-
-        save_document_lines(_lines, _id_company, _key_mh, conn)
-        conn.commit()
-    finally:
-        conn.close()
+    save_document_lines(_lines, _id_company, _key_mh)
+    db_commit()
 
     return {
         'status': 'procesando',
@@ -180,7 +171,7 @@ def create_document(data):
     }
 
 
-def save_document_lines(lines, id_company, key_mh, conn):
+def save_document_lines(lines, id_company, key_mh):
     for _line in lines:
         _line_number = _line['numero']
         _quantity = _line['cantidad']
@@ -192,17 +183,17 @@ def save_document_lines(lines, id_company, key_mh, conn):
 
         documents.save_document_line_info(id_company, _line_number,
                                           _quantity, _unity, _detail, _unit_price,
-                                          _net_tax, _total_line, key_mh, connection=conn)
+                                          _net_tax, _total_line, key_mh)
 
         _taxes = _line.get('impuesto')
         if _taxes:
             save_document_taxes(_taxes, id_company, _line_number,
-                                key_mh, conn)
+                                key_mh)
 
     return True
 
 
-def save_document_taxes(taxes, id_company, line_number, key_mh, conn):
+def save_document_taxes(taxes, id_company, line_number, key_mh):
     for _tax in taxes:
         _rate_code = _tax.get('codigoTarifa')
         _code = _tax['codigo']
@@ -210,16 +201,14 @@ def save_document_taxes(taxes, id_company, line_number, key_mh, conn):
         _amount = _tax['monto']
 
         documents.save_document_line_taxes(id_company, line_number,
-                                           _rate_code, _code, _rate, _amount,
-                                           key_mh, connection=conn)
+                                           _rate_code, _code, _rate, _amount, key_mh)
 
     return True
 
 
-def save_additional_emails(key_mh, _emails, conn):
+def save_additional_emails(key_mh, _emails):
     for email in _emails:
-        documents.save_document_additional_email(key_mh, email,
-                                                 connection=conn)
+        documents.save_document_additional_email(key_mh, email)
 
     return True
 
@@ -249,8 +238,9 @@ def processing_documents(company_user, key_mh, answer: bool):
 def validate_documents(env: str):
     item_cb = validate_document
     collec_cb_args = (0, env)
-    return _run_and_summ_docs_job(item_cb=item_cb,
-                                  collec_cb_args=collec_cb_args)
+    with mysql.app.app_context():
+        return _run_and_summ_docs_job(item_cb=item_cb,
+                                      collec_cb_args=collec_cb_args)
 
 
 def validate_document(company_user, key_mh):
@@ -300,6 +290,8 @@ def validate_document(company_user, key_mh):
         'procesando', date
     )
 
+    db_commit()
+
     return response
 
 
@@ -307,8 +299,9 @@ def validate_document(company_user, key_mh):
 def consult_documents(env):
     item_cb = partial(consult_document, answer=False)
     collec_cb_args = (1, env)
-    return _run_and_summ_docs_job(item_cb=item_cb,
-                                  collec_cb_args=collec_cb_args)
+    with mysql.app.app_context():
+        return _run_and_summ_docs_job(item_cb=item_cb,
+                                      collec_cb_args=collec_cb_args)
 
 
 def consult_document(company_user, key_mh, answer: bool):  # todo: review this...
@@ -387,12 +380,14 @@ def consult_document(company_user, key_mh, answer: bool):  # todo: review this..
             # temp juggling insanity... nevermind, don't look at it...
             mail_sent = get_smtp_error_code(ex)
 
-        documents.update_isSent(document_data['key_mh'], mail_sent)
+        documents.update_is_sent(document_data['key_mh'], mail_sent)
 
     if res_answer_xml:
         response['data']['detail'] = extract_answer_detail(res_answer_xml)
         if answer:
             response['data']['xml-respuesta'] = res_answer_xml
+
+    db_commit()
 
     return response
 

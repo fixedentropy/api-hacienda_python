@@ -1,10 +1,10 @@
-from infrastructure import dbadapter as dba
 from helpers.errors.enums import DBErrorCodes
 from helpers.errors.exceptions import DatabaseError
+from infrastructure import dbadapter as dba
 
 
-def save_document(company_id, key_mh, sign_xml, status, date, document_type, receiver,
-                  total_document, total_taxed, pdf, email, email_costs, connection=None):
+def save_document(company_id, key_mh, sign_xml, status, date, document_type,
+                  receiver, total_document, total_taxed, pdf, email, email_costs):
     receiver_type = None
     receiver_dni = None
     if receiver is not None:
@@ -12,12 +12,12 @@ def save_document(company_id, key_mh, sign_xml, status, date, document_type, rec
         receiver_dni = receiver.get('numeroIdentificacion')
 
     procedure = 'sp_saveDocument'
-    args = (company_id, key_mh, sign_xml, status, date, document_type, receiver_type,
-            receiver_dni, total_document, total_taxed, pdf, email, email_costs)
+    args = (company_id, key_mh, sign_xml, status, date, document_type,
+            receiver_type, receiver_dni, total_document, total_taxed, pdf, email,
+            email_costs)
 
     try:
-        dba.execute_proc(proc_name=procedure, args=args,
-                         conn=connection, assert_unique=True)
+        dba.execute_proc(proc_name=procedure, args=args, assert_unique=True)
     except dba.DbAdapterError as dbae:
         raise DatabaseError(dbae.get_message(),
                             error_code=DBErrorCodes.DB_DOCUMENT_CREATE) from dbae
@@ -26,12 +26,12 @@ def save_document(company_id, key_mh, sign_xml, status, date, document_type, rec
 
 
 def save_document_line_info(id_company, line_number, quantity, unity,
-                            detail, unit_price, net_tax, total_line, key_mh, connection=None):
+                            detail, unit_price, net_tax, total_line, key_mh):
     procedure = 'sp_createDocumentLineInfo'
     args = (id_company, line_number, quantity, unity,
             detail, unit_price, net_tax, total_line, key_mh)
     try:
-        dba.execute_proc(proc_name=procedure, args=args, conn=connection, assert_unique=True)
+        dba.execute_proc(proc_name=procedure, args=args, assert_unique=True)
     except dba.DbAdapterError as dbae:
         raise DatabaseError(dbae.get_message(),
                             error_code=DBErrorCodes.DB_DOCUMENT_DETAIL_LINE_CREATE) from dbae
@@ -39,11 +39,12 @@ def save_document_line_info(id_company, line_number, quantity, unity,
     return True
 
 
-def save_document_line_taxes(id_company, line_number, rate_code, code, rate, amount, key_mh, connection=None):
+def save_document_line_taxes(id_company, line_number, rate_code, code,
+                             rate, amount, key_mh):
     procedure = 'sp_createDocumentTaxInfo'
     args = (id_company, line_number, rate_code, code, rate, amount, key_mh)
     try:
-        dba.execute_proc(proc_name=procedure, args=args, conn=connection, assert_unique=True)
+        dba.execute_proc(proc_name=procedure, args=args, assert_unique=True)
     except dba.DbAdapterError as dbae:
         raise DatabaseError(dbae.get_message(),
                             error_code=DBErrorCodes.DB_DOCUMENT_LINE_TAX_CREATE) from dbae
@@ -51,12 +52,11 @@ def save_document_line_taxes(id_company, line_number, rate_code, code, rate, amo
     return True
 
 
-def save_document_additional_email(key_mh, email, connection=None):
+def save_document_additional_email(key_mh, email):
     procedure = 'usp_insert_documentxemail'
     args = (key_mh, email)
     try:
-        dba.execute_proc(proc_name=procedure, args=args,
-                         conn=connection, assert_unique=True)
+        dba.execute_proc(proc_name=procedure, args=args, assert_unique=True)
     except dba.DbAdapterError as dbae:
         raise DatabaseError(dbae.get_message(),
                             error_code=DBErrorCodes.DB_DOCUMENT_ADDITIONAL_EMAIL_CREATE) from dbae
@@ -77,12 +77,12 @@ def update_document(company_id, key_mh, answer_xml, status, date):
     return True
 
 
-def update_isSent(key_mh, isSent, connection=None):
+def update_is_sent(key_mh, is_sent):
     procedure = 'usp_updateIsSent_documents'
-    args = (key_mh, isSent)
+    args = (key_mh, is_sent)
     try:
         dba.execute_proc(proc_name=procedure, args=args,
-                         assert_unique=True, conn=connection)
+                         assert_unique=True)
     except dba.DbAdapterError as dbae:
         raise DatabaseError(dbae.get_message(),
                             error_code=DBErrorCodes.DB_DOCUMENT_UPDATE_ISSENT

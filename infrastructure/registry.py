@@ -1,8 +1,8 @@
 """Module for manipulating data for table registrocivil in the database
 """
-from infrastructure import dbadapter as dbadp
 from helpers.errors.enums import DBErrorCodes
 from helpers.errors.exceptions import DatabaseError
+from infrastructure import dbadapter as dbadp
 
 
 def get_person(person_id: str):

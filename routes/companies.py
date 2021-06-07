@@ -17,6 +17,7 @@ def route_save_company():
     files = connexion.request.files
     body = connexion.request.form
     result = service.create_company(body, files)
+    result['http_status'] = 201
     return utils.build_response(result)
 
 

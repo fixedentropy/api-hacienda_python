@@ -14,19 +14,19 @@ def spend(amount: int = 1):
         pass
 
 
-def reset_interval(connection=None):
+def reset_interval():
     try:
         procedure = 'usp_requestpool_resetInterval'
-        dba.execute_proc(proc_name=procedure, conn=connection)
+        dba.execute_proc(proc_name=procedure)
     except dba.DbAdapterError as dbae:
         pass
 
 
-def set_sleep(seconds: int, connection=None):
+def set_sleep(seconds: int):
     try:
         procedure = 'usp_requestpool_setSleep'
         args = (seconds,)
-        dba.execute_proc(proc_name=procedure, args=args, conn=connection)
+        dba.execute_proc(proc_name=procedure, args=args)
     except dba.DbAdapterError as dbae:
         pass
 

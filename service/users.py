@@ -1,18 +1,15 @@
-import json
 import time
-from configuration import globalsettings
+
 import six
+from jose import jwt, JWTError, ExpiredSignatureError
 from werkzeug.exceptions import Unauthorized
 
-from infrastructure import users
-from infrastructure.dbadapter import DbAdapterError
-
-from jose import jwt, JWTError, ExpiredSignatureError
-
-from service import utils
+from configuration import globalsettings
 from helpers.errors.enums import InputErrorCodes, AuthErrorCodes, InternalErrorCodes
 from helpers.errors.exceptions import InputError, AuthError, ServerError
 from helpers.utils import build_response_data  # CONSIDER MAKING THIS A DECORATOR
+from infrastructure import users
+from infrastructure.dbadapter import commit as db_commit
 
 cfg = globalsettings.cfg
 
@@ -29,6 +26,7 @@ def create_user(data):
         raise InputError('Email {}'.format(_email), error_code=InputErrorCodes.DUPLICATE_RECORD)
 
     users.save_user(_email, _password, _name, _idrol, _idcompanies)
+    db_commit()
 
     return build_response_data({'message': 'User created successfully'})
 
@@ -41,6 +39,7 @@ def modify_user(data):
     _idcompanies = data['idcompanies']
 
     users.modify_user(_email, _password, _name, _idrol, _idcompanies)
+    db_commit()
 
     return build_response_data({'message': 'User updated successfully'})
 
@@ -56,12 +55,14 @@ def get_list_users(id_user=0):
 
 def delete_user(id_user):
     users.delete_user_data(id_user)
+    db_commit()
     return build_response_data({'message': 'The user has been deleted successfully.'})
 
 
 def delete_user_companies(data):
     _email = data['email']
     users.delete_user_companies(_email)
+    db_commit()
     return build_response_data({'message': "The user's associated companies have been cleared."})
 
 

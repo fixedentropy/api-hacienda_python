@@ -4,16 +4,16 @@ from logging import getLogger
 from bs4 import BeautifulSoup
 from jinja2 import Template
 
-from infrastructure import company_smtp
-from infrastructure import documents
-from infrastructure import template as dao_template
 from configuration import globalsettings
-from infrastructure.emails import send_email
-from service import fe_enums
 from helpers.errors.enums import InputErrorCodes, InternalErrorCodes
 from helpers.errors.exceptions import InputError, ServerError
 from helpers.utils import build_response_data
 from helpers.validations.document import KEY_PARTS_SLICES
+from infrastructure import company_smtp
+from infrastructure import documents
+from infrastructure import template as dao_template
+from infrastructure.emails import send_email
+from service import fe_enums
 
 cfg = globalsettings.cfg
 TEMPLATE_TYPES = {

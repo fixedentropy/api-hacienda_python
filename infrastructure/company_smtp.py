@@ -1,7 +1,6 @@
-import json
-from infrastructure import dbadapter as dba
 from helpers.errors.enums import DBErrorCodes
 from helpers.errors.exceptions import DatabaseError
+from infrastructure import dbadapter as dba
 
 
 def save_company_smtp(host, user, password, port,

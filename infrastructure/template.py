@@ -1,20 +1,16 @@
 import typing as t
 
-from infrastructure import dbadapter as dba
 from helpers.errors.enums import DBErrorCodes
 from helpers.errors.exceptions import DatabaseError
+from infrastructure import dbadapter as dba
 
 
-def insert_template(
-        id_template_type: int, id_company: int, data: str,
-        connection=None
-) -> bool:
+def insert_template(id_template_type: int, id_company: int, data: str) -> bool:
     procedure = 'usp_template_insert'
     args = (id_template_type, id_company, data)
     try:
         dba.execute_proc(
-            proc_name=procedure, args=args,
-            conn=connection, assert_unique=True
+            proc_name=procedure, args=args, assert_unique=True
         )
     except dba.DbAdapterError as dbae:
         raise DatabaseError(
@@ -26,16 +22,13 @@ def insert_template(
 
 
 def update_template_by_id(
-        id_template: int, id_template_type: int,
-        id_company: int, data: str, connection=None
+        id_template: int, id_template_type: int, id_company: int, data: str
 ) -> bool:
     procedure = 'usp_template_updateById'
-    args = (id_template, id_template_type, id_company,
-            data)
+    args = (id_template, id_template_type, id_company, data)
     try:
         dba.execute_proc(
-            proc_name=procedure, args=args,
-            conn=connection, assert_unique=True
+            proc_name=procedure, args=args, assert_unique=True
         )
     except dba.DbAdapterError as dbae:
         raise DatabaseError(
@@ -46,16 +39,13 @@ def update_template_by_id(
     return True
 
 
-def delete_template_by_id(
-        id_template: int, connection=None
-) -> bool:
+def delete_template_by_id(id_template: int) -> bool:
     procedure = 'usp_template_deleteById'
     args = (id_template,)
     try:
         dba.execute_proc(
             proc_name=procedure,
             args=args,
-            conn=connection,
             assert_unique=True
         )
     except dba.DbAdapterError as dbae:
@@ -67,9 +57,7 @@ def delete_template_by_id(
     return True
 
 
-def select_common_templates(
-        id_template_type: int = None
-) -> t.Union[t.List[dict], dict, None]:
+def select_common_templates(id_template_type: int = None) -> t.Union[t.List[dict], dict, None]:
     procedure = 'usp_template_selectCommon'
     args = (id_template_type,)
     try:
@@ -107,9 +95,7 @@ def select_template_by_id(id_template: int) -> t.Union[dict, None]:
         ) from dbae
 
 
-def select_unique_template(
-        id_template_type: int, id_company: int
-) -> t.Union[dict, None]:
+def select_unique_template(id_template_type: int, id_company: int) -> t.Union[dict, None]:
     procedure = 'usp_template_selectByUQ_Template'
     args = (id_template_type, id_company)
     try:

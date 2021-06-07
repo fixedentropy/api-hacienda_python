@@ -1,18 +1,17 @@
 import typing
 
-from infrastructure import dbadapter as dba
 from helpers.errors.enums import DBErrorCodes
 from helpers.errors.exceptions import DatabaseError
+from infrastructure import dbadapter as dba
 
 
-def save_template_type(description: str, connection=None) -> bool:
+def save_template_type(description: str) -> bool:
     procedure = 'usp_templatetype_insert'
     args = (description,)
     try:
         dba.execute_proc(
             proc_name=procedure,
             args=args,
-            conn=connection,
             assert_unique=True
         )
     except dba.DbAdapterError as dbae:
@@ -24,15 +23,13 @@ def save_template_type(description: str, connection=None) -> bool:
     return True
 
 
-def update_template_type(tmplt_type_id: int,
-                         description: str, connection=None) -> bool:
+def update_template_type(tmplt_type_id: int, description: str) -> bool:
     procedure = 'usp_templatetype_update'
     args = (tmplt_type_id, description)
     try:
         dba.execute_proc(
             proc_name=procedure,
             args=args,
-            conn=connection,
             assert_unique=True
         )
     except dba.DbAdapterError as dbae:

@@ -5,24 +5,25 @@ from datetime import datetime
 from decimal import InvalidOperation
 
 import requests
-from pytz import timezone
 from lxml import etree
+from pytz import timezone
 
-from . import api_facturae
-from . import fe_enums
-from helpers.utils import build_response_data, run_and_summ_collec_job, get_smtp_error_code
+from configuration import globalsettings
+from extensions import mysql
 from helpers.entities.messages import RecipientMessage
 from helpers.entities.numerics import DecimalMoney
 from helpers.entities.strings import IDN, IDNType
 from helpers.errors.enums import InputErrorCodes
 from helpers.errors.exceptions import InputError
-from helpers.debugging import log_section
+from helpers.utils import build_response_data, run_and_summ_collec_job, get_smtp_error_code
 from infrastructure import companies as dao_company
-from infrastructure import message as dao_message
 from infrastructure import company_smtp as dao_smtp
 from infrastructure import documents as dao_document
 from infrastructure import emails
-from configuration import globalsettings
+from infrastructure import message as dao_message
+from infrastructure.dbadapter import commit as db_commit
+from . import api_facturae
+from . import fe_enums
 
 _logger = logging.getLogger(__name__)
 _data_statuses = (200, 206)
@@ -190,11 +191,12 @@ def job_process_messages(env):
         'key_mh': 'key_mh',
         'rec_seq_num': 'recipient_seq_number'
     }
-    return run_and_summ_collec_job(collec_cb,
-                                   item_cb, item_id_key,
-                                   collec_cb_args, {},
-                                   item_cb_kwargs_map,
-                                   sleepme=20)
+    with mysql.app.app_context():
+        return run_and_summ_collec_job(collec_cb,
+                                       item_cb, item_id_key,
+                                       collec_cb_args, {},
+                                       item_cb_kwargs_map,
+                                       sleepme=20)
 
 
 def _handle_created_message(company: dict, message: dict, token: str):
@@ -231,6 +233,7 @@ def _handle_created_message(company: dict, message: dict, token: str):
         return info
 
     dao_message.update_from_answer(company_user, key, sequence, 'procesando')
+    db_commit()
 
     result = {
         'message': 'Confirmación recibida por Hacienda.',
@@ -286,6 +289,8 @@ Setting it to None/Null""".format(ver, message_query_key))
             email_sent = get_smtp_error_code(ex)
 
         dao_message.update_email_sent(key, sequence, email_sent)
+
+    db_commit()
 
     if answer_xml:
         decoded = b64decode(answer_xml)

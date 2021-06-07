@@ -1,8 +1,7 @@
 """Module that enables interaction with the registry infrastructure and facilitates data to routes. I guess...
 """
-import json
-from infrastructure import registry
 from helpers import utils
+from infrastructure import registry
 
 
 def get_person(person_id: str) -> dict:

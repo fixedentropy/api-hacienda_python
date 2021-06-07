@@ -56,7 +56,7 @@ def schedule_prod():
         id='Consult documents Prod',
         func=documents.consult_documents,
         trigger='interval',
-        seconds=700,
+        seconds=850,
         jitter=32,
         args=('api-prod',)
     )
