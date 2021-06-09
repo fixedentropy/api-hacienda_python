@@ -12,6 +12,7 @@ from helpers.validations.document import KEY_PARTS_SLICES
 from infrastructure import company_smtp
 from infrastructure import documents
 from infrastructure import template as dao_template
+from infrastructure import companies as dao_company
 from infrastructure.emails import send_email
 from service import fe_enums
 
@@ -23,8 +24,28 @@ _logger = getLogger(__name__)
 
 
 def sent_email_fe(data: dict):
+    company = dao_company.get_company_data(data['company_user'])
+    if not company:
+        raise InputError(
+            error_code=InputErrorCodes.OTHER,
+            message=(
+                """No se puede enviar el documento: la compañia especificada para \
+el documento no fue encontrada.
+Compañia: {}"""
+            ).format(data['company_user'])
+        )
+    if not company['is_active']:
+        raise InputError(
+            error_code=InputErrorCodes.INACTIVE_COMPANY,
+            message=(
+                "No se puede enviar el documento: la compañia especificada se encuentra"
+                " inactiva.\n"
+                "Compañia: {}".format(data['company_user'])
+            )
+        )
+
     if 'email' not in data:  # arbitrary af check
-        document = documents.get_document(data['key_mh'])
+        document = documents.get_document(company['id'], data['key_mh'])
     else:
         document = data.copy()
 
@@ -88,7 +109,7 @@ Tipo Plantilla: {}'''.format(document['company_name'], TEMPLATE_TYPES['email']))
 
     primary_recipient = document['email']
     receivers = [primary_recipient]
-    additional_recipients = documents.get_additional_emails(data['key_mh'])
+    additional_recipients = documents.get_additional_emails(document['id'])
     if isinstance(additional_recipients, list):
         receivers += list(x['email'] for x in additional_recipients)
 

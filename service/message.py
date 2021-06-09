@@ -36,10 +36,10 @@ def create(data: dict):
     if 'data' in data:
         data = data['data']
 
-    company_id = data['nombre_usuario']
-    company = dao_company.get_company_data(company_id)
+    company_user = data['nombre_usuario']
+    company = dao_company.get_company_data(company_user)
     if not company:
-        raise InputError('company', company_id,
+        raise InputError('company', company_user,
                          error_code=InputErrorCodes.NO_RECORD_FOUND)
 
     if not company['is_active']:
@@ -80,34 +80,50 @@ def create(data: dict):
     encoded = b64encode(signed)
 
     issuer_email = data.get('correoEmisor')
+    if not issuer_email.strip():
+        issuer_email = None
 
-    dao_message.insert(company_id, message, issue_date,
+    dao_message.insert(company_user, message, issue_date,
                        encoded, 'creado', issuer_email=issuer_email)
 
-    return process_message('-'.join((message.key,
-                                     message.recipientSequenceNumber)))
+    return process_message(
+        company_user,
+        '-'.join((message.key,
+                  message.recipientSequenceNumber))
+    )
 
 
-def process_message(key_mh: str, rec_seq_num: str = None):
+def process_message(company_user: str, key_mh: str, rec_seq_num: str = None,
+                    include_xml: str = None):
+    company = dao_company.get_company_data(company_user)
+    if not company:
+        raise InputError(
+            error_code=InputErrorCodes.NO_RECORD_FOUND,
+            message=(
+                'La compañia especificada no fue encontrada.\n'
+                'Compañia: {}'.format(company_user)
+            )
+        )
+
+    if not company['is_active']:
+        raise InputError(
+            error_code=InputErrorCodes.INACTIVE_COMPANY,
+            message=(
+                'La compañia especificada se encuentra inactiva.\n'
+                'Compañia: {}'.format(company_user)
+            )
+        )
+
     key = key_mh
     sequence = rec_seq_num
     if sequence is None:  # attempt to coerce sequence from the full key
         key, *sequence = key.split('-', 1)
         sequence = sequence[0] if sequence else None
-    message = dao_message.select(key, sequence)
+    message = dao_message.select(company['id'], key, sequence)
     if not message:
         raise InputError(
             'message', key if sequence is None else '-'.join((key, sequence)),
             error_code=InputErrorCodes.NO_RECORD_FOUND)
-
-    company_user = message['company_user']
-    company = dao_company.get_company_data(company_user)
-    if not company:
-        raise InputError('company', company_user,
-                         error_code=InputErrorCodes.NO_RECORD_FOUND)
-
-    if not company['is_active']:
-        raise InputError(error_code=InputErrorCodes.INACTIVE_COMPANY)
 
     try:
         mh_token = api_facturae.get_token_hacienda(company_user,
@@ -120,12 +136,12 @@ def process_message(key_mh: str, rec_seq_num: str = None):
     if message['status'] == 'creado':
         result = _handle_created_message(company, message, mh_token)
     else:
-        result = _handle_sent_message(company, message, mh_token)  # query_message(key_mh, mh_token, company['env'])
+        result = _handle_sent_message(company, message, mh_token, bool(include_xml))  # query_message(key_mh, mh_token, company['env'])
 
     return build_response_data(result)
 
 
-def get_by_company(company: str):
+def get_by_company(company: str, with_files: str = None):
     company_data = dao_company.get_company_data(company)
     if company_data is None:
         raise InputError(
@@ -135,14 +151,33 @@ def get_by_company(company: str):
     if not company_data['is_active']:
         raise InputError(error_code=InputErrorCodes.INACTIVE_COMPANY)
 
-    messages = dao_message.select_by_company(company)
+    messages = dao_message.select_by_company(company, bool(with_files))
     return build_response_data({'data': messages})
 
 
-def get_prop(key_mh: str, prop_name: str):
+def get_prop(company_user: str, key_mh: str, prop_name: str):
+    company = dao_company.get_company_data(company_user)
+    if not company:
+        raise InputError(
+            error_code=InputErrorCodes.NO_RECORD_FOUND,
+            message=(
+                'La compañia especificada no fue encontrada.\n'
+                'Compañia: {}'.format(company_user)
+            )
+        )
+
+    if not company['is_active']:
+        raise InputError(
+            error_code=InputErrorCodes.INACTIVE_COMPANY,
+            message=(
+                'La compañia especificada se encuentra inactiva.\n'
+                'Compañia: {}'.format(company_user)
+            )
+        )
+
     key, *sequence = key_mh.split('-', 1)
     sequence = sequence[0] if sequence else None
-    message = dao_message.select(key, sequence)
+    message = dao_message.select(company['id'], key, sequence)
     if not message:
         raise InputError(
             'message', key if sequence is None else '-'.join((key, sequence)),
@@ -185,9 +220,10 @@ def send_mail(document: dict):
 def job_process_messages(env):
     collec_cb = dao_message.select_by_status
     item_cb = process_message
-    item_id_key = ('key_mh', 'recipient_seq_number')
+    item_id_key = ('company_id', 'key_mh', 'recipient_seq_number')
     collec_cb_args = ('procesando', None, True, env)
     item_cb_kwargs_map = {
+        'company_user': 'company_user',
         'key_mh': 'key_mh',
         'rec_seq_num': 'recipient_seq_number'
     }
@@ -204,7 +240,7 @@ def _handle_created_message(company: dict, message: dict, token: str):
     issue_date = message['issue_date']
     key = message['key_mh']
     sequence = message['recipient_seq_number']
-    company_user = company['company_user']
+    company_id = company['id']
     if isinstance(issue_date, datetime):
         issue_date = issue_date.isoformat()
     document = {
@@ -227,12 +263,12 @@ def _handle_created_message(company: dict, message: dict, token: str):
     info = _handle_hacienda_api_response(response)
     if 'error' in info:
         if info['error']['http_status'] == 400:  # gotta update only if the response is 400...
-            dao_message.update_from_answer(company_user, key, sequence, 'procesando')
+            dao_message.update_from_answer(company_id, key, sequence, 'procesando')
         return info
     elif 'unexpected' in info:
         return info
 
-    dao_message.update_from_answer(company_user, key, sequence, 'procesando')
+    dao_message.update_from_answer(company_id, key, sequence, 'procesando')
     db_commit()
 
     result = {
@@ -242,7 +278,7 @@ def _handle_created_message(company: dict, message: dict, token: str):
     return result
 
 
-def _handle_sent_message(company: dict, message: dict, token: str):
+def _handle_sent_message(company: dict, message: dict, token: str, include_xml: bool):
     key = message['key_mh']
     sequence = message['recipient_seq_number']
     message_query_key = '-'.join((key, sequence))
@@ -268,7 +304,8 @@ Setting it to None/Null""".format(ver, message_query_key))
                          " provide a date. Setting it to None/Null**"))
         answer_date = None
 
-    dao_message.update_from_answer(company['company_user'], key, sequence, status, answer_date, answer_xml)
+    company_id = company['id']
+    dao_message.update_from_answer(company_id, key, sequence, status, answer_date, answer_xml)
 
     result = {
         'data': {
@@ -276,9 +313,13 @@ Setting it to None/Null""".format(ver, message_query_key))
             'date': _curr_datetime_cr()
         }
     }
-    if status.lower() == 'aceptado' \
-            and message['issuer_email'] \
-            and message['email_sent'] is None:  # should only send mail if one was given for the issuer
+    should_send_mail = (
+            status.lower() == 'aceptado'
+            and message['issuer_email'] is not None
+            and message['issuer_email'].strip()
+            and message['email_sent'] is None
+    )  # should only send mail if one was given for the issuer
+    if should_send_mail:
         email_sent = 0
         try:
             send_mail(message)
@@ -288,7 +329,7 @@ Setting it to None/Null""".format(ver, message_query_key))
             result['data']['warning'] = 'A problem occurred when attempting to send email.'
             email_sent = get_smtp_error_code(ex)
 
-        dao_message.update_email_sent(key, sequence, email_sent)
+        dao_message.update_email_sent(company_id, key, sequence, email_sent)
 
     db_commit()
 
@@ -297,7 +338,8 @@ Setting it to None/Null""".format(ver, message_query_key))
         parsed_answer_xml = etree.fromstring(decoded)
         result['data']['detail'] = parsed_answer_xml.findtext('{*}DetalleMensaje') or ''
 
-    result['data']['xml-respuesta'] = answer_xml
+    if include_xml:
+        result['data']['xml-respuesta'] = answer_xml
     return result
 
 
@@ -452,13 +494,14 @@ def _handle_hacienda_api_response(response: requests.Response):
     return info
 
 
-def _send_mail_invoice(document: dict, smtp: dict):
+def _send_mail_invoice(document: dict, smtp: dict):  # deprecated... maybe...
     doc_key = document['key_mh']
 
     primary_recipient = document['email']
     recipients = [primary_recipient]
     additional_recipients = dao_document.get_additional_emails(
-        doc_key)
+        document['id']
+    )
     if isinstance(additional_recipients, list):
         recipients += list(x['email'] for x in additional_recipients)
 
@@ -493,8 +536,8 @@ def _send_mail_message(document: dict, smtp: dict):
             doc_key),
         'content': ("""Saludos cordiales,
         
-Se le informa que su documento emitido con clave: "{}","""
-                    """ para el receptor con identificación: "{}", """
+Se le informa que su documento emitido con clave: "{}", """
+                    """para el receptor con identificación: "{}", """
                     """numeración consecutiva: "{}", """
                     """fue confirmado con un estado de: {}."""
                     ).format(doc_key, document['recipient_idn'], doc_sequence,

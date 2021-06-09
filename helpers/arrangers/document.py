@@ -26,7 +26,7 @@ TZ_CR = tz.gettz('America/Costa_Rica')
 
 
 def arrange_data(data: dict, company_data: dict) -> tuple:
-    xml_data = arrange_xml_data(data)
+    xml_data = arrange_xml_data(data, company_data)
     if generates_pdf(data):
         pdf_data = arrange_pdf_data(data, company_data)
         xml_data['detalles'], pdf_data['lines'] = arrange_details(data['detalles'])
@@ -37,7 +37,7 @@ def arrange_data(data: dict, company_data: dict) -> tuple:
     return xml_data, pdf_data
 
 
-def arrange_xml_data(data: dict) -> dict:
+def arrange_xml_data(data: dict, company: dict) -> dict:
     xml_data = deepcopy(data)
 
     xml_data['tipoC'] = data['tipo']
@@ -59,7 +59,9 @@ def arrange_xml_data(data: dict) -> dict:
 
             for ref in references:
                 if 'numeroReferencia' in ref:
-                    document = documents_dao.get_document(ref['numeroReferencia'])
+                    document = documents_dao.get_document(
+                        company['id'], ref['numeroReferencia']
+                    )
                     if document is not None:
                         ref['fecha'] = document['datesign'].isoformat()
                     else:

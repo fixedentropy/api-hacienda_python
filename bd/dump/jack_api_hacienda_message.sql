@@ -39,7 +39,7 @@ CREATE TABLE `message` (
   `answer_xml` blob,
   `email_sent` tinyint(4) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `UQ_message` (`key_mh`, `recipient_seq_number`),
+  UNIQUE KEY `UQ_message` (`company_id`, `key_mh`, `recipient_seq_number`),
   KEY `FK_message_companies` (`company_id`),
   KEY `IDX_Message_Status (`status`),
   KEY `IDX_Message_Code` (`code`),

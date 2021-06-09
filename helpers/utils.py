@@ -160,6 +160,10 @@ def run_and_summ_collec_job(collec_cb, item_cb,
     :returns: str - a string with a summary for the
         executed operations.
     """
+    collec_cb_name = collec_cb.func.__qualname__ if hasattr(collec_cb, 'func') \
+        else collec_cb.__qualname__
+    item_cb_name = item_cb.func.__qualname__ if hasattr(item_cb, 'func') \
+        else item_cb.__qualname__
     if item_cb_kwargs_map is None:
         item_cb_kwargs_map = {}
     if collec_cb_kwargs is None:
@@ -173,7 +177,7 @@ Collection callback: {}
 Callback Args: {}
 Callback Kwargs: {}
 {}
-""".format(collec_cb.__qualname__, collec_cb_args,
+""".format(collec_cb_name, collec_cb_args,
            collec_cb_kwargs, format_exc())
 
     summary = {
@@ -195,8 +199,9 @@ Callback: {}
 Params: {}
 {}
 """.format(
-                item[item_id_keys] if isinstance(item_id_keys, str) else (', '.join(item[key] for key in item_id_keys)),
-                item_cb.__qualname__,
+                item[item_id_keys] if isinstance(item_id_keys, str)
+                else (', '.join(str(item[key]) for key in item_id_keys)),
+                item_cb_name,
                 params, format_exc())
             )
         sleep(sleepme)

@@ -204,46 +204,41 @@ DELIMITER ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_createDocumentLineInfo`(
-v_id_company varchar(45),
-v_line_number varchar(45),
-v_quantity varchar(45),
-v_unity varchar(45),
-v_detail varchar(150),
-v_unit_price varchar(45),
-v_net_tax varchar(45),
-v_total_line varchar(45),
-v_key_mh varchar(50))
+	p_company_id INT,
+	p_doc_id INT,
+	p_line_number varchar(45),
+	p_quantity varchar(45),
+	p_unity varchar(45),
+	p_detail varchar(150),
+	p_unit_price varchar(45),
+	p_net_tax varchar(45),
+	p_total_line varchar(45)
+)
 BEGIN
-DECLARE v_document_id int;
-SET v_document_id = (Select id from documents where key_mh = v_key_mh);
-IF not exists ( select id from document_line where id_company = v_id_company and
-				id_document = v_document_id and
-                line_number = v_line_number) then
 	INSERT INTO `jack_api_hacienda`.`document_line`
 	(
-	`id_company`,
-	`id_document`,
-	`line_number`,
-	`quantity`,
-	`unity`,
-	`detail`,
-	`unit_price`,
-	`net_tax`,
-	`total_line`
+		`id_company`,
+		`id_document`,
+		`line_number`,
+		`quantity`,
+		`unity`,
+		`detail`,
+		`unit_price`,
+		`net_tax`,
+		`total_line`
 	)
 	VALUES
 	(
-	v_id_company,
-	v_document_id,
-	v_line_number,
-	v_quantity,
-	v_unity,
-	v_detail,
-	v_unit_price,
-	v_net_tax,
-	v_total_line
+		p_company_id,
+		p_doc_id,
+		p_line_number,
+		p_quantity,
+		p_unity,
+		p_detail,
+		p_unit_price,
+		p_net_tax,
+		p_total_line
 	);
-END IF;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -261,38 +256,32 @@ DELIMITER ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_createDocumentTaxInfo`(
-v_id_company varchar(45),
-v_line_number varchar(45),
-v_rate_code varchar(45),
-v_code varchar(45),
-v_rate varchar(45),
-v_ammount varchar(45),
-v_key_mh varchar(50))
+	p_doc_id INT,
+	p_line_id INT,
+	p_rate_code varchar(45),
+	p_code varchar(45),
+	p_rate varchar(45),
+	p_ammount varchar(45)
+)
 BEGIN
-DECLARE v_document_id int; DECLARE v_document_line_id int;
-SET v_document_id = (Select id from documents where key_mh = v_key_mh);
-SET v_document_line_id = (Select id from document_line where line_number = v_line_number and id_document = v_document_id);
-IF not exists (select id from document_taxes where id_document = v_document_id and
-				id_line = v_document_line_id and code = v_code) THEN
 	INSERT INTO `jack_api_hacienda`.`document_taxes`
 	(
-	`id_document`,
-	`id_line`,
-	`rate_code`,
-	`code`,
-	`rate`,
-	`ammount`
+		`id_document`,
+		`id_line`,
+		`rate_code`,
+		`code`,
+		`rate`,
+		`ammount`
 	)
 	VALUES
 	(
-	v_document_id,
-	v_document_line_id,
-	v_rate_code,
-	v_code,
-	v_rate,
-	v_ammount
+		p_doc_id,
+		p_line_id,
+		p_rate_code,
+		p_code,
+		p_rate,
+		p_ammount
 	);
-END IF;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -597,9 +586,12 @@ DELIMITER ;
 /*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_getDocumentByKey`(
-v_key_mh varchar(50))
+	p_company_id INT,
+	p_key_mh varchar(50)
+)
 BEGIN
-	Select cp.company_user,
+	Select d.id,
+		cp.company_user,
 		cp.name AS company_name,
 		cp.id AS company_id,
 		d.key_mh,
@@ -616,8 +608,10 @@ BEGIN
 		CONVERT(d.signxml USING utf8) signxml,
 		CONVERT(d.answerxml USING utf8) answerxml,
 		CONVERT(d.pdfdocument USING utf8) as pdfdocument 
-from documents d 
-inner join companies cp on d.company_id = cp.id  where d.key_mh = v_key_mh;
+	from documents d 
+	inner join companies cp on d.company_id = cp.id 
+	where cp.id = p_company_id
+		AND d.key_mh = p_key_mh;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -1166,16 +1160,17 @@ WHERE `key_mh` = v_key_mh and `company_id` = (Select id from companies where com
 END ;;
 DELIMITER ;
 
+
 DROP PROCEDURE IF EXISTS `usp_updateIsSent_documents`;
 DELIMITER $$
 CREATE PROCEDURE `usp_updateIsSent_documents` (
-	v_key_mh VARCHAR(50),
-	v_isSent TINYINT
+	p_doc_id INT,
+	p_isSent TINYINT
 )
 BEGIN
 	UPDATE documents
-	SET	`isSent` = v_isSent
-	WHERE `key_mh` = v_key_mh;
+	SET	`isSent` = p_isSent
+	WHERE `id` = p_doc_id;
 END $$
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -1266,22 +1261,18 @@ DELIMITER ;
 /*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
 CREATE DEFINER=`root`@`localhost` PROCEDURE `usp_insert_documentxemail`(
-	IN `p_key` VARCHAR(50),
+	IN `p_doc_id` INT,
 	IN `p_email` VARCHAR(128)
 )
 BEGIN
-	DECLARE v_iddoc int;
-	SET v_iddoc = (SELECT id FROM documents WHERE key_mh = p_key);
-	IF v_iddoc IS NOT NULL THEN
-		INSERT INTO documentxemail(
-        	iddocument,
-        	email
-    	)
-   		VALUES (
-            v_iddoc,
-        	p_email
-    	);
-    END IF;
+	INSERT INTO documentxemail(
+		iddocument,
+		email
+	)
+	VALUES (
+		p_doc_id,
+		p_email
+	);
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -1352,14 +1343,10 @@ DELIMITER ;
 /*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
 CREATE DEFINER=`root`@`localhost` PROCEDURE `usp_selectByDocKey_documentxemail`(
-	IN `p_key` VARCHAR(50)
+	IN `p_doc_id` INT
 )
 BEGIN
-    DECLARE v_iddoc int;
-    SET v_iddoc = (SELECT id FROM documents WHERE key_mh = p_key);
-    IF v_iddoc IS NOT NULL THEN
-    	SELECT email FROM documentxemail WHERE iddocument = v_iddoc;
-    END IF;
+	SELECT email FROM documentxemail WHERE iddocument = p_doc_id;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -1433,7 +1420,7 @@ DELIMITER ;
 DROP PROCEDURE IF EXISTS usp_updateFromAnswer_message;
 DELIMITER $$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `usp_updateFromAnswer_message` (
-	IN `p_company_user` VARCHAR(45),
+	IN `p_company_id` INT,
 	IN `p_key_mh` VARCHAR(50),
 	IN `p_recipient_seq_number` VARCHAR(20),
 	IN `p_encd_answer_xml` BLOB,
@@ -1441,17 +1428,13 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `usp_updateFromAnswer_message` (
 	IN `p_answer_date` DATETIME
 )
 BEGIN
-	DECLARE v_idcomp INT;
-	SET v_idcomp = (SELECT id from companies WHERE company_user = `p_company_user`);
-	IF v_idcomp IS NOT NULL THEN
-		UPDATE `message`
-		SET	answer_xml	=	`p_encd_answer_xml`,
-			status	=	`p_status`,
-			answer_date =	`p_answer_date`
-		WHERE	company_id = v_idcomp
-			AND	key_mh	=	`p_key_mh`
-			AND	recipient_seq_number = `p_recipient_seq_number`;
-	END IF;
+	UPDATE `message`
+	SET	answer_xml	=	`p_encd_answer_xml`,
+		status	=	`p_status`,
+		answer_date =	`p_answer_date`
+	WHERE	company_id = `p_company_id`
+		AND	key_mh	=	`p_key_mh`
+		AND	recipient_seq_number = `p_recipient_seq_number`;
 END$$
 DELIMITER ;
 
@@ -1459,6 +1442,7 @@ DELIMITER ;
 DROP PROCEDURE IF EXISTS `usp_updateEmailSent_message`;
 DELIMITER $$
 CREATE PROCEDURE `usp_updateEmailSent_message` (
+	p_company_id INT,
 	p_key_mh VARCHAR(50),
 	p_recipient_seq_number VARCHAR(20),
 	p_email_sent TINYINT
@@ -1466,7 +1450,8 @@ CREATE PROCEDURE `usp_updateEmailSent_message` (
 BEGIN
 	UPDATE message
 	SET	`email_sent` = p_email_sent
-	WHERE `key_mh` = p_key_mh
+	WHERE company_id = p_company_id
+		AND `key_mh` = p_key_mh
 		AND `recipient_seq_number` = p_recipient_seq_number;
 END$$
 DELIMITER ;
@@ -1487,13 +1472,15 @@ SELECT	msg.id,
 	msg.issuer_email,
 	msg.recipient_idn,
 	msg.recipient_seq_number,
-	CONVERT(msg.signed_xml USING utf8),
+	CONVERT(msg.signed_xml USING utf8) AS `signed_xml`,
 	msg.answer_date,
-	CONVERT(msg.answer_xml USING utf8),
+	CONVERT(msg.answer_xml USING utf8) AS `answer_xml`,
 	cmp.is_active as company_is_active,
-	msg.email_sent
+	msg.email_sent,
+	cmh.env AS company_env
 FROM	`message` AS msg INNER JOIN
-	companies as cmp ON msg.company_id = cmp.id;
+	companies as cmp ON msg.company_id = cmp.id INNER JOIN
+	companies_mh AS cmh ON cmp.id = cmh.company_api;
 
 
 DROP VIEW IF EXISTS vw_message_simple;
@@ -1525,13 +1512,15 @@ FROM	`message` AS msg INNER JOIN
 DROP PROCEDURE IF EXISTS usp_select_message;
 DELIMITER $$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `usp_select_message` (
+	IN p_company_id INT,
 	IN `p_key_mh` VARCHAR(50),
 	IN `p_recipient_seq_number` VARCHAR(20)
 )
 BEGIN
 	SELECT vw_msg.*
 	FROM	`vw_message` AS vw_msg
-	WHERE	vw_msg.key_mh = p_key_mh
+	WHERE vw_msg.company_id = p_company_id
+		AND vw_msg.key_mh = p_key_mh
 		AND	vw_msg.recipient_seq_number = `p_recipient_seq_number`;
 END$$
 DELIMITER ;
@@ -1541,10 +1530,15 @@ DROP PROCEDURE IF EXISTS usp_selectByCompany_message;
 DELIMITER $$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `usp_selectByCompany_message` (
 	IN `p_company_user` VARCHAR(50),
+	IN p_with_files TINYINT UNSIGNED,
 	IN `p_limit` INT UNSIGNED
 )
 BEGIN
-	SET @q = 'SELECT v_msg.*	FROM	`vw_message_simple` AS v_msg WHERE v_msg.company_user = ?';
+	SET @q = CONCAT(
+		'SELECT v_msg.* FROM ',
+		IF(p_with_files, '`vw_message`', '`vw_message_simple`'),
+		'  AS v_msg WHERE v_msg.company_user = ?'
+	);
 	IF `p_limit` IS NOT NULL THEN
 		SET @q = CONCAT(@q, ' LIMIT ', `p_limit`);
 	END IF;
@@ -1652,12 +1646,14 @@ DELIMITER ;
 DROP PROCEDURE IF EXISTS usp_verifyExists_documents;
 DELIMITER $$
 CREATE PROCEDURE usp_verifyExists_documents(
+	p_company_id INT,
 	p_key_mh VARCHAR(50)
 )
 BEGIN
-	SELECT d.id
-	FROM documents as d
-	WHERE d.key_mh = p_key_mh;
+	SELECT id
+	FROM documents
+	WHERE company_id = p_company_id
+		AND key_mh = p_key_mh;
 END $$
 DELIMITER ;
 -- --------------------------------------

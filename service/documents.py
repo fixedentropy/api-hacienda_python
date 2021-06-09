@@ -60,7 +60,7 @@ def create_document(data):
         raise InputError(error_code=InputErrorCodes.INACTIVE_COMPANY)
 
     _key_mh = data['clavelarga']
-    if documents.verify_exists(_key_mh):
+    if documents.verify_exists(company_data['id'], _key_mh):
         raise InputError('Document with key {}'.format(_key_mh),
                          error_code=InputErrorCodes.DUPLICATE_RECORD)
 
@@ -151,17 +151,17 @@ def create_document(data):
 
         pdfencoded = base64.b64encode(pdf)
 
-    documents.save_document(_company_user, _key_mh, xmlencoded,
-                            'creado', datecr, _type_document,
-                            _receptor, _total_document, _total_taxes,
-                            pdfencoded, _email, _email_costs)
+    doc_id = documents.save_document(
+        _company_user, _key_mh, xmlencoded, 'creado', datecr, _type_document,
+        _receptor, _total_document, _total_taxes, pdfencoded, _email, _email_costs
+    )
 
     _id_company = company_data['id']
 
     if len(_additional_emails) > 0:
-        save_additional_emails(_key_mh, _additional_emails)
+        save_additional_emails(doc_id, _additional_emails)
 
-    save_document_lines(_lines, _id_company, _key_mh)
+    save_document_lines(_id_company, doc_id, _lines)
     db_commit()
 
     return {
@@ -171,7 +171,7 @@ def create_document(data):
     }
 
 
-def save_document_lines(lines, id_company, key_mh):
+def save_document_lines(company_id, doc_id, lines):
     for _line in lines:
         _line_number = _line['numero']
         _quantity = _line['cantidad']
@@ -181,44 +181,40 @@ def save_document_lines(lines, id_company, key_mh):
         _net_tax = _line['impuestoNeto']
         _total_line = _line['totalLinea']
 
-        documents.save_document_line_info(id_company, _line_number,
-                                          _quantity, _unity, _detail, _unit_price,
-                                          _net_tax, _total_line, key_mh)
+        line_id = documents.save_document_line_info(
+            company_id, doc_id, _line_number, _quantity, _unity, _detail,
+            _unit_price, _net_tax, _total_line
+        )
 
         _taxes = _line.get('impuesto')
         if _taxes:
-            save_document_taxes(_taxes, id_company, _line_number,
-                                key_mh)
+            save_document_taxes(doc_id, line_id, _taxes)
 
     return True
 
 
-def save_document_taxes(taxes, id_company, line_number, key_mh):
+def save_document_taxes(doc_id, line_number, taxes):
     for _tax in taxes:
         _rate_code = _tax.get('codigoTarifa')
         _code = _tax['codigo']
         _rate = _tax['tarifa']
         _amount = _tax['monto']
 
-        documents.save_document_line_taxes(id_company, line_number,
-                                           _rate_code, _code, _rate, _amount, key_mh)
+        documents.save_document_line_taxes(
+            doc_id, line_number, _rate_code, _code, _rate, _amount
+        )
 
     return True
 
 
-def save_additional_emails(key_mh, _emails):
+def save_additional_emails(doc_id, _emails):
     for email in _emails:
-        documents.save_document_additional_email(key_mh, email)
+        documents.save_document_additional_email(doc_id, email)
 
     return True
 
 
 def processing_documents(company_user, key_mh, answer: bool):
-    document_data = documents.get_document(key_mh)
-    if not document_data:
-        raise InputError('document', key_mh,
-                         error_code=InputErrorCodes.NO_RECORD_FOUND)
-
     company_data = companies.get_company_data(company_user)
     if not company_data:
         raise InputError('company', company_user,
@@ -226,6 +222,11 @@ def processing_documents(company_user, key_mh, answer: bool):
 
     if not company_data['is_active']:
         raise InputError(error_code=InputErrorCodes.INACTIVE_COMPANY)
+
+    document_data = documents.get_document(company_data['id'], key_mh)
+    if not document_data:
+        raise InputError('document', key_mh,
+                         error_code=InputErrorCodes.NO_RECORD_FOUND)
 
     if document_data['status'] == 'creado':  # todo: optimize
         result = validate_document(company_data, document_data)
@@ -258,7 +259,7 @@ def validate_document(company_user, key_mh):
         company_data = company_user
 
     if isinstance(key_mh, str):
-        document_data = documents.get_document(key_mh)
+        document_data = documents.get_document(company_data['id'], key_mh)
     else:
         document_data = key_mh
 
@@ -311,7 +312,7 @@ def consult_document(company_user, key_mh, answer: bool):  # todo: review this..
         company_data = company_user
 
     if isinstance(key_mh, str):
-        document_data = documents.get_document(key_mh)
+        document_data = documents.get_document(company_data['id'], key_mh)
     else:
         document_data = key_mh
 
@@ -380,7 +381,7 @@ def consult_document(company_user, key_mh, answer: bool):  # todo: review this..
             # temp juggling insanity... nevermind, don't look at it...
             mail_sent = get_smtp_error_code(ex)
 
-        documents.update_is_sent(document_data['key_mh'], mail_sent)
+        documents.update_is_sent(document_data['id'], mail_sent)
 
     if res_answer_xml:
         response['data']['detail'] = extract_answer_detail(res_answer_xml)
@@ -397,8 +398,15 @@ def document_report(company_user, document_type):
     return build_response_data({'data': {'documents': result}})
 
 
-def get_pdf(key: str):
-    document = documents.get_document(key)
+def get_pdf(company_user: str, key: str):
+    company = companies.get_company_data(company_user)
+    if not company:
+        raise InputError(
+            error_code=InputErrorCodes.NO_RECORD_FOUND,
+            message='La compañia indicada no fue encontrada.'
+        )
+
+    document = documents.get_document(company['id'], key)
     if not document:
         raise InputError('document', key,
                          error_code=InputErrorCodes.NO_RECORD_FOUND)
@@ -416,8 +424,15 @@ Document Type: {}
     return build_response_data(data)
 
 
-def get_property(key: str, prop_name: str):
-    document = documents.get_document(key)
+def get_property(company_user: str, key: str, prop_name: str):
+    company = companies.get_company_data(company_user)
+    if not company:
+        raise InputError(
+            error_code=InputErrorCodes.NO_RECORD_FOUND,
+            message='La compañia indicada no fue encontrada.'
+        )
+
+    document = documents.get_document(company['id'], key)
     if not document:
         raise InputError('document', key,
                          error_code=InputErrorCodes.NO_RECORD_FOUND)
