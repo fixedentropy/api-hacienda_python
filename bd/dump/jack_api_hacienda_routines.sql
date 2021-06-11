@@ -148,7 +148,8 @@ IN v_code_phone int,
 IN v_phone int,
 IN v_email varchar(128),
 IN v_activity_code varchar(45),
-IN v_is_active tinyint(4)
+IN v_is_active tinyint(4),
+IN p_pdf_exchangerate TINYINT
 )
 BEGIN
 
@@ -168,7 +169,8 @@ INSERT INTO `jack_api_hacienda`.`companies`
 `phone`,
 `email`,
 `activity_code`,
-`is_active`
+`is_active`,
+pdf_exchangerate
 )
 VALUES
 (v_company_user ,
@@ -185,8 +187,9 @@ v_code_phone,
 v_phone ,
 v_email,
 v_activity_code,
-v_is_active);
-
+v_is_active,
+p_pdf_exchangerate
+);
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -900,7 +903,8 @@ IN v_code_phone int,
 IN v_phone int,
 IN v_email varchar(128),
 IN v_activity_code varchar(45),
-IN v_is_active tinyint(4)
+IN v_is_active tinyint(4),
+IN p_pdf_exchangerate TINYINT
 )
 BEGIN
 
@@ -919,7 +923,8 @@ SET
 `phone`= v_phone,
 `email` = v_email,
 `activity_code` = v_activity_code,
-`is_active` = v_is_active
+`is_active` = v_is_active,
+pdf_exchangerate = p_pdf_exchangerate
 where `company_user` = v_company_user;
 END ;;
 DELIMITER ;

@@ -39,6 +39,7 @@ CREATE TABLE `companies` (
   `email` varchar(128) DEFAULT NULL,
   `activity_code` varchar(45) DEFAULT NULL,
   `is_active` tinyint(4) DEFAULT NULL,
+  pdf_exchangerate TINYINT NOT NULL DEFAULT 1,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=73 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;

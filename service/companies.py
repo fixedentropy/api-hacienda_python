@@ -45,6 +45,7 @@ def create_company(data, files):
     _pass_mh = data['password_hacienda']
     _env = data['ambiente']
     _is_active = data['estado']
+    _pdf_exchangerate = data['pdf_tipocambio']
 
     b64signature = base64.b64encode(signature)
 
@@ -52,13 +53,12 @@ def create_company(data, files):
     if 'logo' in files:
         _logo = base64.b64encode(files['logo'].read())
 
-    companies.create_company(_company_user, _name,
-                             _tradename, _type_identification, _dni,
-                             _state, _county, _district, _neighbor,
-                             _address, _phone_code, _phone, _email,
-                             _activity_code, _is_active, _user_mh,
-                             _pass_mh, b64signature, _logo, _pin,
-                             _env, _expiration_date)
+    companies.create_company(
+        _company_user, _name, _tradename, _type_identification, _dni, _state,
+        _county, _district, _neighbor, _address, _phone_code, _phone, _email,
+        _activity_code, _is_active, _pdf_exchangerate, _user_mh, _pass_mh,
+        b64signature, _logo, _pin, _env, _expiration_date
+    )
 
     return build_response_data({'message': 'company created successfully!'})
 
@@ -109,21 +109,19 @@ def modify_company(data, files):
     _pass_mh = data['password_hacienda']
     _env = data['ambiente']
     _is_active = data['estado']
+    _pdf_exchange_rate = data['pdf_tipocambio']
 
     b64signature = base64.b64encode(signature)
     _logo = None
     if 'logo' in files:
         _logo = base64.b64encode(files['logo'].read())
 
-    result = companies.modify_company(_company_user,
-                                      _name, _tradename,
-                                      _type_identification, _dni,
-                                      _state, _county, _district,
-                                      _neighbor, _address, _phone_code,
-                                      _phone, _email, _activity_code,
-                                      _is_active, _user_mh, _pass_mh,
-                                      b64signature, _logo, _pin, _env,
-                                      _expiration_date)
+    result = companies.modify_company(
+        _company_user, _name, _tradename, _type_identification, _dni, _state,
+        _county, _district, _neighbor, _address, _phone_code, _phone, _email,
+        _activity_code, _is_active, _pdf_exchange_rate, _user_mh, _pass_mh,
+        b64signature, _logo, _pin, _env, _expiration_date
+    )
 
     return build_response_data({'message': 'company modified successfully!'})
 

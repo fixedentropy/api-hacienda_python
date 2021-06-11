@@ -114,6 +114,8 @@ components:
           format: binary
         estado:
           type: string
+        pdf_tipocambio:
+          type: boolean
     company_post_put:
       type: object
       allOf:

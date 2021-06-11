@@ -5,16 +5,17 @@ from helpers.errors.enums import DBErrorCodes
 from helpers.errors.exceptions import DatabaseError
 
 
-def create_company(company_user, name, tradename, type_identification, dni, state, county, district, neighbor, address,
-                   phone_code, phone, email, activity_code, is_active, user_mh, pass_mh, signature, logo, pin_sig, env,
-                   expiration_date):
+def create_company(company_user, name, tradename, type_identification, dni,
+                   state, county, district, neighbor, address, phone_code, phone,
+                   email, activity_code, is_active, pdf_exchangerate, user_mh,
+                   pass_mh, signature, logo, pin_sig, env, expiration_date):
     conn = dba.connectToMySql()
 
     try:
         comp_proc = 'sp_createCompany'
         comp_args = (company_user, name, tradename, type_identification, dni, state,
                      county, district, neighbor, address, phone_code, phone, email,
-                     activity_code, is_active)
+                     activity_code, is_active, pdf_exchangerate)
         try:
             dba.execute_proc(proc_name=comp_proc, args=comp_args,
                              conn=conn, assert_unique=True)
@@ -43,16 +44,17 @@ def create_company(company_user, name, tradename, type_identification, dni, stat
         conn.close()
 
 
-def modify_company(company_user, name, tradename, type_identification, dni, state, county, district, neighbor, address,
-                   phone_code, phone, email, activity_code, is_active, user_mh, pass_mh, signature, logo, pin_sig, env,
-                   expiration_date):
+def modify_company(company_user, name, tradename, type_identification, dni,
+                   state, county, district, neighbor, address, phone_code, phone,
+                   email, activity_code, is_active, pdf_exchangerate, user_mh,
+                   pass_mh, signature, logo, pin_sig, env, expiration_date):
     conn = dba.connectToMySql()
 
     try:
         comp_proc = 'sp_ModifyCompany'
         comp_args = (company_user, name, tradename, type_identification, dni, state,
                      county, district, neighbor, address, phone_code, phone, email,
-                     activity_code, is_active)
+                     activity_code, is_active, pdf_exchangerate)
         try:
             dba.execute_proc(proc_name=comp_proc, args=comp_args,
                              conn=conn, assert_unique=True)

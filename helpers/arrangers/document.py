@@ -129,7 +129,7 @@ def arrange_pdf_data(data: dict, company_data: dict) -> dict:
 
     _data = arrange_pdf_parties(data, company_data)
 
-    body_data = build_pdf_body_data(_data)
+    body_data = build_pdf_body_data(_data, company_data)
     pdf_data['body'] = body_data
 
     header_data = build_pdf_header_data(_data)
@@ -250,7 +250,7 @@ def arrange_pdf_parties(data: dict, company_data: dict) -> dict:
     return arranged
 
 
-def build_pdf_body_data(data: dict) -> dict:
+def build_pdf_body_data(data: dict, company_data: dict) -> dict:
     total_document = utils.stringRound(data['totalComprobantes'])
     recipient = data['recipient']
     currency = data['codigoTipoMoneda']
@@ -284,7 +284,7 @@ def build_pdf_body_data(data: dict) -> dict:
     body_data['currency'] = {
         'tipoMoneda': currency['tipoMoneda']
     }
-    if not data.get('sinTipoCambio'):
+    if company_data['pdf_exchangerate']:
         body_data['currency']['tipoCambio'] = utils.stringRound(currency['tipoCambio'])
 
     body_data['currencySymbol'] = fe_enums.currencies.get(
