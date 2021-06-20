@@ -72,21 +72,33 @@
                     <td>
                         <table class="table table-sm invoice-info">
                             <tr>
-                                <td>
+                                <td colspan="2">
                                     <b>{{document_type}}</b><br>
                                     {{consecutive}}
                                 </td>
                             </tr>
                             <tr>
-                                <td>
+                                <td colspan="2">
                                     <b>Fecha:</b> {{date}}
                                 </td>
                             </tr>
                             <tr>
                                 <td>
                                     <b>Nro. Referencia:</b><br />
+                                </td>
+                                <td>
                                     {{ref_num}}
                                 </td>
+                            </tr>
+                            <tr>
+                                {% if ref_num2 %}
+                                <td>
+                                    <b>Nro. Referencia 2:</b><br />
+                                </td>
+                                <td>
+                                    {{ ref_num2 }}
+                                </td>
+                                {% endif %}
                             </tr>
                         </table>
                     </td>

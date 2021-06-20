@@ -426,6 +426,8 @@ def build_pdf_header_data(data: dict) -> dict:
     header_data['issuer'] = issuer
     header_data['consecutive'] = data['consecutivo']
     header_data['ref_num'] = data['numReferencia']
+    if 'numReferencia2' in data:
+        header_data['ref_num2'] = data['numReferencia2']
     header_data['date'] = parse_datetime(
         data['fechafactura'], 'fechafactura'
     ).strftime(DATETIME_DISPLAY_FORMAT)
