@@ -1371,7 +1371,7 @@ DELIMITER ;
 DROP PROCEDURE IF EXISTS usp_insert_message;
 DELIMITER $$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `usp_insert_message` (
-	IN `p_company_id` VARCHAR(45),
+	IN `p_company_id` INT,
 	IN `p_key_mh` VARCHAR(50),
 	IN `p_issuer_idn_num` VARCHAR(15),
 	IN `p_issuer_idn_type` VARCHAR(10),
@@ -1384,35 +1384,31 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `usp_insert_message` (
 	IN `p_issuer_email` VARCHAR(128)
 )
 BEGIN
-	DECLARE v_idcomp INT;
-	SET v_idcomp = (SELECT id from companies WHERE company_user = p_company_id);
-	IF v_idcomp IS NOT NULL THEN
-		INSERT INTO `message` (
-			company_id,
-			key_mh,
-			status,
-			code,
-			issue_date,
-			issuer_idn_num,
-			issuer_idn_type,
-			issuer_email,
-			recipient_idn,
-			recipient_seq_number,
-			signed_xml)
-		VALUES (
-			v_idcomp,
-			`p_key_mh`,
-			`p_status`,
-			`p_code`,
-			`p_issue_date`,
-			`p_issuer_idn_num`,
-			`p_issuer_idn_type`,
-			`p_issuer_email`,
-			`p_recipient_idn`,
-			`p_recipient_seq_number`,
-			`p_encd_xml`
-		);
-	END IF;
+	INSERT INTO `message` (
+		company_id,
+		key_mh,
+		status,
+		code,
+		issue_date,
+		issuer_idn_num,
+		issuer_idn_type,
+		issuer_email,
+		recipient_idn,
+		recipient_seq_number,
+		signed_xml
+	) VALUES (
+		p_company_id,
+		`p_key_mh`,
+		`p_status`,
+		`p_code`,
+		`p_issue_date`,
+		`p_issuer_idn_num`,
+		`p_issuer_idn_type`,
+		`p_issuer_email`,
+		`p_recipient_idn`,
+		`p_recipient_seq_number`,
+		`p_encd_xml`
+	);
 END$$
 DELIMITER ;
 
@@ -1529,7 +1525,7 @@ DELIMITER ;
 DROP PROCEDURE IF EXISTS usp_selectByCompany_message;
 DELIMITER $$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `usp_selectByCompany_message` (
-	IN `p_company_user` VARCHAR(50),
+	IN `p_company_id` VARCHAR(50),
 	IN p_with_files TINYINT UNSIGNED,
 	IN `p_limit` INT UNSIGNED
 )
@@ -1537,14 +1533,14 @@ BEGIN
 	SET @q = CONCAT(
 		'SELECT v_msg.* FROM ',
 		IF(p_with_files, '`vw_message`', '`vw_message_simple`'),
-		'  AS v_msg WHERE v_msg.company_user = ?'
+		'  AS v_msg WHERE v_msg.company_id = ?'
 	);
 	IF `p_limit` IS NOT NULL THEN
 		SET @q = CONCAT(@q, ' LIMIT ', `p_limit`);
 	END IF;
 	PREPARE stmt FROM @q;
-	SET @cmp_user = `p_company_user`;
-	EXECUTE stmt USING @cmp_user;
+	SET @cmp_id = `p_company_id`;
+	EXECUTE stmt USING @cmp_id;
 	DEALLOCATE PREPARE stmt;
 END$$
 DELIMITER ;
@@ -1554,15 +1550,15 @@ DROP PROCEDURE IF EXISTS usp_selectByStatus_message;
 DELIMITER $$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `usp_selectByStatus_message` (
 	IN `p_status` VARCHAR(30),
-	IN `p_company_user` VARCHAR(50),
+	IN `p_company_id` INT,
 	IN `p_company_is_active` TINYINT UNSIGNED,
 	IN p_env VARCHAR(10),
 	IN `p_limit` INT UNSIGNED
 )
 BEGIN
 	SET @q = 'SELECT v_msg.*	FROM	`vw_message_simple` AS v_msg WHERE v_msg.status = ?';
-	IF `p_company_user` IS NOT NULL THEN
-		SET @q = CONCAT(@q, ' AND v_msg.company_user = ', `p_company_user`);
+	IF `p_company_id` IS NOT NULL THEN
+		SET @q = CONCAT(@q, ' AND v_msg.company_id = ', `p_company_id`);
 	END IF;
 	IF `p_company_is_active` IS NOT NULL THEN
 		SET @q = CONCAT(@q, ' AND v_msg.company_is_active = ', `p_company_is_active`);
@@ -1585,13 +1581,13 @@ DROP PROCEDURE IF EXISTS usp_selectByCode_message;
 DELIMITER $$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `usp_selectByCode_message` (
 	IN `p_code` VARCHAR(1),
-	IN `p_company_user` VARCHAR(50),
+	IN `p_company_id` INT,
 	IN `p_limit` INT UNSIGNED
 )
 BEGIN
 	SET @q = 'SELECT v_msg.*	FROM	`vw_message_simple` AS v_msg WHERE v_msg.code = ?';
-	IF `p_company_user` IS NOT NULL THEN
-		SET @q = CONCAT(@q, ' AND v_msg.company_user = ', `p_company_user`);
+	IF `p_company_id` IS NOT NULL THEN
+		SET @q = CONCAT(@q, ' AND v_msg.company_id = ', `p_company_id`);
 	END IF;
 	IF `p_limit` IS NOT NULL THEN
 		SET @q = CONCAT(@q, ' LIMIT ', `p_limit`);
@@ -1607,14 +1603,14 @@ DELIMITER ;
 DROP PROCEDURE IF EXISTS usp_selectByIssuerIDN_message;
 DELIMITER $$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `usp_selectByIssuerIDN_message` (
-	IN `p_issuer_idn_num` VARCHAR(1),
-	IN `p_company_user` VARCHAR(50),
+	IN `p_issuer_idn_num` VARCHAR(15),
+	IN `p_company_id` INT,
 	IN `p_limit` INT UNSIGNED
 )
 BEGIN
 	SET @q = 'SELECT v_msg.*	FROM	`vw_message_simple` AS v_msg WHERE v_msg.issuer_idn_num = ?';
-	IF `p_company_user` IS NOT NULL THEN
-		SET @q = CONCAT(@q, ' AND v_msg.company_user = ', `p_company_user`);
+	IF `p_company_id` IS NOT NULL THEN
+		SET @q = CONCAT(@q, ' AND v_msg.company_id = ', `p_company_id`);
 	END IF;
 	IF `p_limit` IS NOT NULL THEN
 		SET @q = CONCAT(@q, ' LIMIT ', `p_limit`);

@@ -21,6 +21,7 @@ from infrastructure import company_smtp as dao_smtp
 from infrastructure import documents as dao_document
 from infrastructure import emails
 from infrastructure import message as dao_message
+from infrastructure import request_pool
 from infrastructure.dbadapter import commit as db_commit
 from . import api_facturae
 from . import fe_enums
@@ -44,6 +45,16 @@ def create(data: dict):
 
     if not company['is_active']:
         raise InputError(error_code=InputErrorCodes.INACTIVE_COMPANY)
+
+    message = dao_message.select(
+        company['id'], data['claveHacienda'], data['consecutivo']
+    )
+    if message:
+        raise InputError(
+            error_code=InputErrorCodes.DUPLICATE_RECORD,
+            message='Mensaje Receptor ya recibido anteriormente.',
+            status=message['status']
+        )
 
     cert = company['signature']
     password = company['pin_sig']
@@ -83,8 +94,9 @@ def create(data: dict):
     if not issuer_email.strip():
         issuer_email = None
 
-    dao_message.insert(company_user, message, issue_date,
+    dao_message.insert(company['id'], message, issue_date,
                        encoded, 'creado', issuer_email=issuer_email)
+    db_commit()
 
     return process_message(
         company_user,
@@ -136,9 +148,9 @@ def process_message(company_user: str, key_mh: str, rec_seq_num: str = None,
     if message['status'] == 'creado':
         result = _handle_created_message(company, message, mh_token)
     else:
-        result = _handle_sent_message(company, message, mh_token, bool(include_xml))  # query_message(key_mh, mh_token, company['env'])
+        result = _handle_sent_message(company, message, mh_token, bool(include_xml))
 
-    return build_response_data(result)
+    return result
 
 
 def get_by_company(company: str, with_files: str = None):
@@ -151,7 +163,7 @@ def get_by_company(company: str, with_files: str = None):
     if not company_data['is_active']:
         raise InputError(error_code=InputErrorCodes.INACTIVE_COMPANY)
 
-    messages = dao_message.select_by_company(company, bool(with_files))
+    messages = dao_message.select_by_company(company_data['id'], bool(with_files))
     return build_response_data({'data': messages})
 
 
@@ -236,6 +248,14 @@ def job_process_messages(env):
 
 
 def _handle_created_message(company: dict, message: dict, token: str):
+    result = {
+        'message': 'procesando',
+        'status': 'procesando'
+    }
+
+    if not request_pool.spend():
+        return result
+
     env = company['env']
     issue_date = message['issue_date']
     key = message['key_mh']
@@ -272,6 +292,7 @@ def _handle_created_message(company: dict, message: dict, token: str):
     db_commit()
 
     result = {
+        'status': 'procesando',
         'message': 'Confirmación recibida por Hacienda.',
         'data': info
     }
@@ -279,17 +300,32 @@ def _handle_created_message(company: dict, message: dict, token: str):
 
 
 def _handle_sent_message(company: dict, message: dict, token: str, include_xml: bool):
+    status = message['status']
+    answer_xml = message['answer_xml']
+    result = {
+        'status': status,
+        'data': {}
+    }
+    if not request_pool.spend():
+        if include_xml:
+            result['data']['xml-respuesta'] = answer_xml
+        return result
+
     key = message['key_mh']
     sequence = message['recipient_seq_number']
     message_query_key = '-'.join((key, sequence))
-    response = query_document(company['env'], message_query_key,
-                              token)
+    response = query_document(
+        company['env'], message_query_key, token
+    )
     info = _handle_hacienda_api_response(response)
     if 'error' in info or 'unexpected' in info:
         return info
 
-    status = info.get('ind-estado', '')
-    answer_xml = info.get('respuesta-xml', None)
+    if 'ind-estado' in info:
+        status = info['ind-estado']
+    if 'respuesta-xml' in info:
+        answer_xml = info['respuesta-xml']
+
     try:
         temp_date = info.get('fecha', '')
         answer_date = datetime.fromisoformat(temp_date)
@@ -305,9 +341,12 @@ Setting it to None/Null""".format(ver, message_query_key))
         answer_date = None
 
     company_id = company['id']
-    dao_message.update_from_answer(company_id, key, sequence, status, answer_date, answer_xml)
+    dao_message.update_from_answer(
+        company_id, key, sequence, status, answer_date, answer_xml
+    )
 
     result = {
+        'status': status,
         'data': {
             'message': status,
             'date': _curr_datetime_cr()

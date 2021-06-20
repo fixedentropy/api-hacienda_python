@@ -6,7 +6,7 @@ from helpers.errors.exceptions import DatabaseError
 from infrastructure import dbadapter as dba
 
 
-def insert(company_id: str, message: RecipientMessage,
+def insert(company_id: int, message: RecipientMessage,
            issue_date: datetime, encoded_xml: bytes, status: str,
            issuer_email: str = None):
     procedure = 'usp_insert_message'
@@ -26,7 +26,7 @@ def insert(company_id: str, message: RecipientMessage,
     return True
 
 
-def update_from_answer(company_id: str, message_key: str,
+def update_from_answer(company_id: int, message_key: str,
                        message_rec_seq_num: str, status: str, answer_date: str = None,
                        encoded_answer_xml: bytes = None):
     procedure = 'usp_updateFromAnswer_message'
@@ -42,7 +42,7 @@ def update_from_answer(company_id: str, message_key: str,
     return True
 
 
-def update_email_sent(company_id: str, message_key: str,
+def update_email_sent(company_id: int, message_key: str,
                       message_rec_seq_num: str, email_sent: int):
     procedure = 'usp_updateEmailSent_message'
     args = (company_id, message_key, message_rec_seq_num, email_sent)
@@ -55,7 +55,7 @@ def update_email_sent(company_id: str, message_key: str,
                             ) from dbae
 
 
-def select(company_id: str, key_mh: str, rec_seq_num: str = None):
+def select(company_id: int, key_mh: str, rec_seq_num: str):
     procedure = 'usp_select_message'
     args = (company_id, key_mh, rec_seq_num)
     try:
@@ -64,38 +64,38 @@ def select(company_id: str, key_mh: str, rec_seq_num: str = None):
         raise DatabaseError(error_code=DBErrorCodes.DB_MESSAGE_SELECT_ONE) from dbae
 
 
-def select_by_company(company_user: str, with_files: bool = False, limit: int = None):
+def select_by_company(company_id: int, with_files: bool = False, limit: int = None):
     procedure = 'usp_selectByCompany_message'
-    args = (company_user, with_files, limit)
+    args = (company_id, with_files, limit)
     try:
         return dba.fetchall_from_proc(procname=procedure, args=args)
     except dba.DbAdapterError as dbae:
         raise DatabaseError(error_code=DBErrorCodes.DB_MESSAGE_SELECT_BY_COMPANY) from dbae
 
 
-def select_by_status(status: str, company_user: str = None,
+def select_by_status(status: int, company_id: str = None,
                      company_is_active: bool = None, env: str = 'api-stag', limit: int = 20):
     procedure = 'usp_selectByStatus_message'
-    args = (status, company_user, company_is_active, env, limit)
+    args = (status, company_id, company_is_active, env, limit)
     try:
         return dba.fetchall_from_proc(procname=procedure, args=args)
     except dba.DbAdapterError as dbae:
         raise DatabaseError(error_code=DBErrorCodes.DB_MESSAGE_SELECT_BY_STATUS) from dbae
 
 
-def select_by_code(code: str, company_user: str = None, limit: int = None):
+def select_by_code(code: int, company_id: str = None, limit: int = None):
     procedure = 'usp_selectByCode_message'
-    args = (code, company_user, limit)
+    args = (code, company_id, limit)
     try:
         return dba.fetchall_from_proc(procname=procedure, args=args)
     except dba.DbAdapterError as dbae:
         raise DatabaseError(error_code=DBErrorCodes.DB_MESSAGE_SELECT_BY_CODE) from dbae
 
 
-def select_by_issuer_idn(issuer_idn: str, company_user: str = None,
+def select_by_issuer_idn(issuer_idn: str, company_id: int = None,
                          limit: int = None):
     procedure = 'usp_selectByIssuerIDN_message'
-    args = (issuer_idn, company_user, limit)
+    args = (issuer_idn, company_id, limit)
     try:
         return dba.fetchall_from_proc(procname=procedure, args=args)
     except dba.DbAdapterError as dbae:
