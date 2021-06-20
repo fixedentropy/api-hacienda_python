@@ -40,7 +40,9 @@ CREATE TABLE `companies` (
   `activity_code` varchar(45) DEFAULT NULL,
   `is_active` tinyint(4) DEFAULT NULL,
   pdf_exchangerate TINYINT NOT NULL DEFAULT 1,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  CONSTRAINT UQ_Company UNIQUE(`company_user`),
+  KEY `IDX_Companies_IsActive` (`is_active`)
 ) ENGINE=InnoDB AUTO_INCREMENT=73 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;

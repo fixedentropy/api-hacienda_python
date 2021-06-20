@@ -1,98 +1,73 @@
-import json
-import base64
-from infrastructure import dbadapter as dba
 from helpers.errors.enums import DBErrorCodes
 from helpers.errors.exceptions import DatabaseError
+from infrastructure import dbadapter as dba
 
 
 def create_company(company_user, name, tradename, type_identification, dni,
                    state, county, district, neighbor, address, phone_code, phone,
                    email, activity_code, is_active, pdf_exchangerate, user_mh,
                    pass_mh, signature, logo, pin_sig, env, expiration_date):
-    conn = dba.connectToMySql()
-
+    comp_proc = 'sp_createCompany'
+    comp_args = (company_user, name, tradename, type_identification, dni, state,
+                 county, district, neighbor, address, phone_code, phone, email,
+                 activity_code, is_active, pdf_exchangerate)
     try:
-        comp_proc = 'sp_createCompany'
-        comp_args = (company_user, name, tradename, type_identification, dni, state,
-                     county, district, neighbor, address, phone_code, phone, email,
-                     activity_code, is_active, pdf_exchangerate)
-        try:
-            dba.execute_proc(proc_name=comp_proc, args=comp_args,
-                             conn=conn, assert_unique=True)
+        dba.execute_proc(proc_name=comp_proc, args=comp_args, assert_unique=True)
 
-        except dba.DbAdapterError as dbae:
-            conn.rollback()
-            raise DatabaseError(dbae.get_message(),
-                                error_code=DBErrorCodes.DB_COMPANY_CREATE) from dbae
+    except dba.DbAdapterError as dbae:
+        raise DatabaseError(dbae.get_message(),
+                            error_code=DBErrorCodes.DB_COMPANY_CREATE) from dbae
 
-        mh_proc = 'sp_saveMHInfo'
-        mh_args = (user_mh, pass_mh, signature, logo, pin_sig, company_user, env,
-                   expiration_date)
-        try:
-            dba.execute_proc(proc_name=mh_proc, args=mh_args,
-                             conn=conn, assert_unique=True)
+    mh_proc = 'sp_saveMHInfo'
+    mh_args = (user_mh, pass_mh, signature, logo, pin_sig, company_user, env,
+               expiration_date)
+    try:
+        dba.execute_proc(proc_name=mh_proc, args=mh_args, assert_unique=True)
 
-        except dba.DbAdapterError as dbae:
-            conn.rollback()
-            raise DatabaseError(dbae.get_message(),
-                                error_code=DBErrorCodes.DB_COMPANY_CREATE_MH) from dbae
+    except dba.DbAdapterError as dbae:
+        raise DatabaseError(dbae.get_message(),
+                            error_code=DBErrorCodes.DB_COMPANY_CREATE_MH) from dbae
 
-        conn.commit()
-        return True
-
-    finally:
-        conn.close()
+    return True
 
 
 def modify_company(company_user, name, tradename, type_identification, dni,
                    state, county, district, neighbor, address, phone_code, phone,
                    email, activity_code, is_active, pdf_exchangerate, user_mh,
                    pass_mh, signature, logo, pin_sig, env, expiration_date):
-    conn = dba.connectToMySql()
-
+    comp_proc = 'sp_ModifyCompany'
+    comp_args = (company_user, name, tradename, type_identification, dni, state,
+                 county, district, neighbor, address, phone_code, phone, email,
+                 activity_code, is_active, pdf_exchangerate)
     try:
-        comp_proc = 'sp_ModifyCompany'
-        comp_args = (company_user, name, tradename, type_identification, dni, state,
-                     county, district, neighbor, address, phone_code, phone, email,
-                     activity_code, is_active, pdf_exchangerate)
-        try:
-            dba.execute_proc(proc_name=comp_proc, args=comp_args,
-                             conn=conn, assert_unique=True)
+        dba.execute_proc(proc_name=comp_proc, args=comp_args, assert_unique=True)
 
-        except dba.DbAdapterError as dbae:
-            conn.rollback()
-            raise DatabaseError(dbae.get_message(),
-                                error_code=DBErrorCodes.DB_COMPANY_UPDATE) from dbae
+    except dba.DbAdapterError as dbae:
+        raise DatabaseError(dbae.get_message(),
+                            error_code=DBErrorCodes.DB_COMPANY_UPDATE) from dbae
 
-        # in case the mh_info is missing for a company, we should be able to add new info to it.
-        # consider changing this procedure to one less intensive.
-        try:
-            mh_info = dba.fetchone_from_proc('sp_getMHInfo', (company_user,))
-        except dba.DbAdapterError as dbae:
-            conn.rollback()
-            raise DatabaseError(error_code=DBErrorCodes.DB_COMPANY_UPDATE_MH,
-                                message="A problem occurred in the database and the company couldn't be updated.")\
-                from dbae
-        if not mh_info:  # if no info, add new info
-            mh_proc = 'sp_saveMHInfo'
-        else:  # else, update it
-            mh_proc = 'sp_modifyMHInfo'
+    # in case the mh_info is missing for a company, we should be able to add new info to it.
+    # consider changing this procedure to one less intensive.
+    try:
+        mh_info = dba.fetchone_from_proc('sp_getMHInfo', (company_user,))
+    except dba.DbAdapterError as dbae:
+        raise DatabaseError(error_code=DBErrorCodes.DB_COMPANY_UPDATE_MH,
+                            message="A problem occurred in the database and the company couldn't be updated.")\
+            from dbae
+    if not mh_info:  # if no info, add new info
+        mh_proc = 'sp_saveMHInfo'
+    else:  # else, update it
+        mh_proc = 'sp_modifyMHInfo'
 
-        mh_args = (user_mh, pass_mh, signature, logo,
-                   pin_sig, company_user, env, expiration_date)
-        try:
-            dba.execute_proc(proc_name=mh_proc, args=mh_args,
-                             conn=conn, assert_unique=True)
-        except dba.DbAdapterError as dbae:
-            conn.rollback()
-            raise DatabaseError(dbae.get_message(),
-                                error_code=DBErrorCodes.DB_COMPANY_UPDATE_MH) from dbae
+    mh_args = (user_mh, pass_mh, signature, logo, pin_sig, company_user, env,
+               expiration_date)
+    try:
+        dba.execute_proc(proc_name=mh_proc, args=mh_args, assert_unique=True)
+    except dba.DbAdapterError as dbae:
+        raise DatabaseError(dbae.get_message(),
+                            error_code=DBErrorCodes.DB_COMPANY_UPDATE_MH) from dbae
 
-        conn.commit()
-        return True
-
-    finally:
-        conn.close()
+    return True
 
 
 def delete_company_data(company_user):
@@ -145,7 +120,6 @@ def get_logo_data(company_user):
 def verify_company(company_user):
     procedure = 'sp_getCompanyInfo'
     args = (company_user,)
-    result = None
     try:
         company = dba.fetchone_from_proc(procname=procedure, args=args)
     except dba.DbAdapterError as dbae:
@@ -163,7 +137,7 @@ def update_state(company_id, new_state):
     procedure = 'USP_UpdateCompanyState'
     args = (company_id, new_state)
     try:
-        company = dba.execute_proc(procedure, args, assert_unique=True)
+        dba.execute_proc(procedure, args, assert_unique=True)
     except dba.DbAdapterError as dbae:
         raise DatabaseError(error_code=DBErrorCodes.DB_COMPANY_UPDATE) from dbae
 

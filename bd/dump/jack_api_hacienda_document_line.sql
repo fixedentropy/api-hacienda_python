@@ -37,7 +37,7 @@ CREATE TABLE `document_line` (
   KEY `id_company_fk_idx` (`id_company`),
   KEY `id_document_fk_idx` (`id_document`),
   CONSTRAINT `id_company_fk2` FOREIGN KEY (`id_company`) REFERENCES `companies` (`id`),
-  CONSTRAINT `id_document_fk2` FOREIGN KEY (`id_document`) REFERENCES `documents` (`id`)
+  CONSTRAINT `id_document_fk2` FOREIGN KEY (`id_document`) REFERENCES `documents` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=72 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;

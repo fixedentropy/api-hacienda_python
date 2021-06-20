@@ -967,6 +967,12 @@ components:
       in: query
       schema:
         type: string
+    with_files:
+      name: files
+      in: query
+      required: false
+      schema:
+        type: string
 paths:
   /api/companies:
     get:
@@ -1112,14 +1118,14 @@ paths:
           $ref: '#/components/responses/Error'
       security:
         - jwt: []
-  /api/companies/{company_id}/documents:
+  /api/companies/{company_user}/documents:
     get:
       tags:
         - companies
       operationId: routes.companies.get_documents
       summary: Obtains the company's documents
       parameters:
-        - name: company_id
+        - name: company_user
           in: path
           required: true
           schema:
@@ -1136,11 +1142,7 @@ paths:
               - 'fec'
               - 'nd'
               - 'nc'
-        - name: files
-          in: query
-          required: false
-          schema:
-            type: string
+        - $ref: '#/components/parameters/with_files'
       responses:
         "200":
           $ref: '#/components/responses/OK'
@@ -1154,20 +1156,146 @@ paths:
           $ref: '#/components/responses/Error'
       security:
         - jwt: []
-  /api/companies/{company_id}/messages:
+  /api/companies/{company_user}/documents/{key}/pdf:
+    get:
+      tags:
+      - utilities
+      summary: Gets the api generated pdf for the specified document
+      operationId: routes.documents.get_pdf
+      parameters:
+        - name: company_user
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: key
+          in: path
+          description: the key for the document to fetch it's pdf
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          $ref: '#/components/responses/OK'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/Unauth'
+        "404":
+          $ref: '#/components/responses/NotFound'
+        default:
+          $ref: '#/components/responses/Error'
+      security:
+        - api_key: []
+  /api/companies/{company_user}/documents/{key}/signed:
+    get:
+      tags:
+        - utilities
+      summary: Gets the api generated signed xml for the specified document
+      operationId: routes.documents.get_signed
+      parameters:
+        - name: company_user
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: key
+          in: path
+          description: the key for the document to fetch it's pdf
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          $ref: '#/components/responses/OK'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/Unauth'
+        "404":
+          $ref: '#/components/responses/NotFound'
+        default:
+          $ref: '#/components/responses/Error'
+      security:
+        - api_key: []
+  /api/companies/{company_user}/documents/{key}/answer:
+    get:
+      tags:
+      - utilities
+      summary: Gets the api generated Hacienda Answer xml for the specified document
+      operationId: routes.documents.get_answer
+      parameters:
+        - name: company_user
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: key
+          in: path
+          description: the key for the document to fetch it's pdf
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          $ref: '#/components/responses/OK'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/Unauth'
+        "404":
+          $ref: '#/components/responses/NotFound'
+        default:
+          $ref: '#/components/responses/Error'
+      security:
+        - api_key: []
+  /api/companies/{company_user}/messages:
     get:
       tags:
         - companies
       operationId: routes.companies.get_messages
       summary: Obtains the company's recipient messages
       parameters:
-        - name: company_id
+        - name: company_user
           in: path
           required: true
           schema:
             type: string
-        - name: files
+        - $ref: '#/components/parameters/with_files'
+      responses:
+        "200":
+          $ref: '#/components/responses/OK'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/Unauth'
+        "404":
+          $ref: '#/components/responses/NotFound'
+        default:
+          $ref: '#/components/responses/Error'
+      security:
+        - jwt: [ ]
+  /api/companies/{company_user}/messages/{key}:
+    patch:
+      tags:
+      - RecipientMessage
+      description: Process or query a RecipientMessage
+      operationId: routes.companies.process_message
+      parameters:
+        - name: company_user
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: key
+          in: path
+          description: The identifying key of the resource
+          required: true
+          schema:
+            type: string
+        - name: xml
           in: query
+          description: If present, response will include b64 encoded Hacienda answer xml
           required: false
           schema:
             type: string
@@ -1183,7 +1311,42 @@ paths:
         default:
           $ref: '#/components/responses/Error'
       security:
-        - jwt: [ ]
+      - api_key: []
+  /api/companies/{company_user}/messages/{key}/{prop_name}:
+    get:
+      tags:
+        - messages
+      summary: attempts to obtain the data for a given property of the resource
+      operationId: routes.messages.get_prop
+      parameters:
+        - name: company_user
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: prop_name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          $ref: '#/components/responses/OK'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/Unauth'
+        "404":
+          $ref: '#/components/responses/NotFound'
+        default:
+          $ref: '#/components/responses/Error'
+      security:
+        - api_key: []
   /api/consult:
     get:
       tags:
@@ -1282,84 +1445,6 @@ paths:
           $ref: '#/components/responses/BadRequest'
         "401":
           $ref: '#/components/responses/Unauth'
-        default:
-          $ref: '#/components/responses/Error'
-      security:
-        - api_key: []
-  /api/documents/{key}/pdf:
-    get:
-      tags:
-      - utilities
-      summary: Gets the api generated pdf for the specified document
-      operationId: routes.documents.get_pdf
-      parameters:
-      - name: key
-        in: path
-        description: the key for the document to fetch it's pdf
-        required: true
-        schema:
-          type: string
-      responses:
-        "200":
-          $ref: '#/components/responses/OK'
-        "400":
-          $ref: '#/components/responses/BadRequest'
-        "401":
-          $ref: '#/components/responses/Unauth'
-        "404":
-          $ref: '#/components/responses/NotFound'
-        default:
-          $ref: '#/components/responses/Error'
-      security:
-        - api_key: []
-  /api/documents/{key}/signed:
-    get:
-      tags:
-        - utilities
-      summary: Gets the api generated signed xml for the specified document
-      operationId: routes.documents.get_signed
-      parameters:
-        - name: key
-          in: path
-          description: the key for the document to fetch it's pdf
-          required: true
-          schema:
-            type: string
-      responses:
-        "200":
-          $ref: '#/components/responses/OK'
-        "400":
-          $ref: '#/components/responses/BadRequest'
-        "401":
-          $ref: '#/components/responses/Unauth'
-        "404":
-          $ref: '#/components/responses/NotFound'
-        default:
-          $ref: '#/components/responses/Error'
-      security:
-        - api_key: []
-  /api/documents/{key}/answer:
-    get:
-      tags:
-      - utilities
-      summary: Gets the api generated Hacienda Answer xml for the specified document
-      operationId: routes.documents.get_answer
-      parameters:
-      - name: key
-        in: path
-        description: the key for the document to fetch it's pdf
-        required: true
-        schema:
-          type: string
-      responses:
-        "200":
-          $ref: '#/components/responses/OK'
-        "400":
-          $ref: '#/components/responses/BadRequest'
-        "401":
-          $ref: '#/components/responses/Unauth'
-        "404":
-          $ref: '#/components/responses/NotFound'
         default:
           $ref: '#/components/responses/Error'
       security:
@@ -1744,6 +1829,7 @@ paths:
           description: results will be filtered through this company identifier.
           schema:
             type: string
+        - $ref: '#/components/parameters/with_files'
       responses:
         "200":
           $ref: '#/components/responses/OK'
@@ -1755,49 +1841,32 @@ paths:
           $ref: '#/components/responses/Error'
       security:
         - jwt: []
-  /api/messages/{key}:
-    get:
+    patch:
       tags:
-      - RecipientMessage
+        - RecipientMessage
       description: Process or query a RecipientMessage
       operationId: routes.messages.process_message
-      parameters:
-      - name: key
-        in: path
-        description: The identifying key of the resource
+      requestBody:
         required: true
-        schema:
-          type: string
-      responses:
-        "200":
-          $ref: '#/components/responses/OK'
-        "400":
-          $ref: '#/components/responses/BadRequest'
-        "401":
-          $ref: '#/components/responses/Unauth'
-        "404":
-          $ref: '#/components/responses/NotFound'
-        default:
-          $ref: '#/components/responses/Error'
-      security:
-      - api_key: []
-  /api/messages/{key}/{prop_name}:
-    get:
-      tags:
-        - messages
-      summary: attempts to obtain the data for a given property of the resource
-      operationId: routes.messages.get_prop
-      parameters:
-        - name: key
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: prop_name
-          in: path
-          required: true
-          schema:
-            type: string
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                compania:
+                  type: string
+                clave:
+                  type: string
+                  minLength: 50
+                  maxLength: 50
+                consecutivo:
+                  type: string
+                  minLength: 20
+                  maxLength: 20
+              required:
+                - compania
+                - clave
+                - consecutivo
       responses:
         "200":
           $ref: '#/components/responses/OK'

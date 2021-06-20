@@ -1,12 +1,9 @@
-import json
-from infrastructure import company_smtp
-from infrastructure import companies
-from infrastructure.dbadapter import DbAdapterError
-from helpers import errors
-from flask import g
 from helpers.errors.enums import InputErrorCodes
 from helpers.errors.exceptions import InputError
 from helpers.utils import build_response_data
+from infrastructure import companies
+from infrastructure import company_smtp
+from infrastructure.dbadapter import commit as db_commit
 
 
 def save_company_smtp(data, id_company):
@@ -30,6 +27,7 @@ def save_company_smtp(data, id_company):
 
     company_smtp.save_company_smtp(_host, _user, _password, _port,
                                    _encrypt_type, id_company, _sender)
+    db_commit()
 
     return build_response_data({'message': 'SMTP data created successfully'})
 
@@ -41,6 +39,7 @@ def get_company_smtp(id_company):
 
 def delete_company_smtp(id_company):
     company_smtp.delete_company_smtp(id_company)
+    db_commit()
     return build_response_data({'message': "The company's SMTP has been deleted."})
 
 
@@ -60,5 +59,6 @@ def modify_company_smtp(data, id_company):
 
     company_smtp.modify_company_smtp(_host, _user, _password, _port,
                                      _encrypt_type, id_company, _sender)
+    db_commit()
 
     return build_response_data({'message': "The company's SMTP was successfully updated."})

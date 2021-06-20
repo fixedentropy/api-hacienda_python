@@ -48,16 +48,16 @@ def route_get_voucher_byid(clave):
     return utils.build_response(result)
 
 
-def get_pdf(key: str):
-    result = service.get_pdf(key)
+def get_pdf(company_user: str, key: str):
+    result = service.get_pdf(company_user, key)
     return utils.build_response(result)
 
 
-def get_signed(key: str):
-    result = service.get_property(key, 'signxml')
+def get_signed(company_user: str, key: str):
+    result = service.get_property(company_user, key, 'signxml')
     return utils.build_response(result)
 
 
-def get_answer(key: str):
-    result = service.get_property(key, 'answerxml')
+def get_answer(company_user: str, key: str):
+    result = service.get_property(company_user, key, 'answerxml')
     return utils.build_response(result)

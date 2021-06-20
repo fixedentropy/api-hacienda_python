@@ -42,6 +42,12 @@ CREATE TABLE `documents` (
   `email_costs` varchar(128) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `FK_company_id_idx` (`company_id`),
+  KEY `idx_documents_status` (`status`),
+  KEY `idx_documents_dateanswer` (`dateanswer`),
+  KEY `idx_documents_datesign` (`datesign`),
+  KEY `idx_documents_documenttype` (`document_type`),
+  KEY `idx_documents_keymh` (`key_mh`),
+  CONSTRAINT UQ_Document UNIQUE (`company_id`, `key_mh`),
   CONSTRAINT `FK_company_id` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=113 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;

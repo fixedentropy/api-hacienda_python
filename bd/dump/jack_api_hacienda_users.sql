@@ -30,6 +30,7 @@ CREATE TABLE `users` (
   `idrol` int(11) NOT NULL,
   PRIMARY KEY (`idusers`),
   KEY `idrol_fk_idx` (`idrol`),
+  CONSTRAINT `UQ_Users_Email` UNIQUE (`email`),
   CONSTRAINT `idrol_fk` FOREIGN KEY (`idrol`) REFERENCES `roles` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=23 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;

@@ -8,6 +8,7 @@ from helpers import utils
 def route_save_company_smtp(company_id):
     body = json.loads(connexion.request.data)
     result = service.save_company_smtp(body['data'], company_id)
+    result['http_status'] = 201
     return utils.build_response(result)
 
 
