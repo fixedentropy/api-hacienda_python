@@ -211,6 +211,45 @@ def get_prop(company_user: str, key_mh: str, prop_name: str):
     })
 
 
+def get_files(company_user: str, key_mh: str):
+    company = dao_company.get_company_data(company_user)
+    if not company:
+        raise InputError(
+            error_code=InputErrorCodes.NO_RECORD_FOUND,
+            message=(
+                'La compañia especificada no fue encontrada.\n'
+                'Compañia: {}'.format(company_user)
+            )
+        )
+
+    if not company['is_active']:
+        raise InputError(
+            error_code=InputErrorCodes.INACTIVE_COMPANY,
+            message=(
+                'La compañia especificada se encuentra inactiva.\n'
+                'Compañia: {}'.format(company_user)
+            )
+        )
+
+    key, *sequence = key_mh.split('-', 1)
+    sequence = sequence[0] if sequence else None
+    message = dao_message.select(company['id'], key, sequence)
+    if not message:
+        raise InputError(
+            'message', key if sequence is None else '-'.join((key, sequence)),
+            error_code=InputErrorCodes.NO_RECORD_FOUND
+        )
+
+    data = {
+        'id': message['id'],
+        'signed_xml': message['signed_xml'],
+        'answer_xml': message['answer_xml']
+    }
+    return build_response_data({
+        'data': data
+    })
+
+
 def send_mail(document: dict):
     smtp_data = dao_smtp.get_company_smtp(document['company_user'])
 

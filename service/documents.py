@@ -452,6 +452,30 @@ def get_property(company_user: str, key: str, prop_name: str):
     })
 
 
+def get_files(company_user: str, key: str):
+    company = companies.get_company_data(company_user)
+    if not company:
+        raise InputError(
+            error_code=InputErrorCodes.NO_RECORD_FOUND,
+            message='La compañia indicada no fue encontrada.'
+        )
+
+    document = documents.get_document(company['id'], key)
+    if not document:
+        raise InputError('document', key,
+                         error_code=InputErrorCodes.NO_RECORD_FOUND)
+
+    data = {
+        'id': document['id'],
+        'pdfdocument': document['pdfdocument'],
+        'signxml': document['signxml'],
+        'answerxml': document['answerxml']
+    }
+    return build_response_data({
+        'data': data
+    })
+
+
 # if this fails horribly, I will rollback and apply a simpler solution...
 _run_and_summ_docs_job = partial(
     run_and_summ_collec_job,

@@ -1249,6 +1249,37 @@ paths:
           $ref: '#/components/responses/Error'
       security:
         - api_key: []
+  /api/companies/{company_user}/documents/{key}/_files:
+    get:
+      tags:
+        - utilities
+      summary: returns the files associated to the document
+      operationId: routes.documents.get_files
+      parameters:
+        - name: company_user
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: key
+          in: path
+          description: the key for the document to fetch it's files
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          $ref: '#/components/responses/OK'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/Unauth'
+        "404":
+          $ref: '#/components/responses/NotFound'
+        default:
+          $ref: '#/components/responses/Error'
+      security:
+        - api_key: [ ]
   /api/companies/{company_user}/messages:
     get:
       tags:
@@ -1330,6 +1361,36 @@ paths:
           schema:
             type: string
         - name: prop_name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          $ref: '#/components/responses/OK'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/Unauth'
+        "404":
+          $ref: '#/components/responses/NotFound'
+        default:
+          $ref: '#/components/responses/Error'
+      security:
+        - api_key: []
+  /api/companies/{company_user}/messages/{key}/_files:
+    get:
+      tags:
+        - messages
+      summary: returns the files associated to the message
+      operationId: routes.messages.get_files
+      parameters:
+        - name: company_user
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: key
           in: path
           required: true
           schema:

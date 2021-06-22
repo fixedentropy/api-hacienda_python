@@ -31,3 +31,8 @@ def get_by_company(company: str, files: str = None):
 def get_prop(company_user: str, key: str, prop_name: str):
     result = model_message.get_prop(company_user, key, prop_name)
     return build_response(result)
+
+
+def get_files(company_user: str, key: str):
+    result = model_message.get_files(company_user, key)
+    return build_response(result)

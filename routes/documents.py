@@ -61,3 +61,8 @@ def get_signed(company_user: str, key: str):
 def get_answer(company_user: str, key: str):
     result = service.get_property(company_user, key, 'answerxml')
     return utils.build_response(result)
+
+
+def get_files(company_user: str, key: str):
+    result = service.get_files(company_user, key)
+    return utils.build_response(result)
