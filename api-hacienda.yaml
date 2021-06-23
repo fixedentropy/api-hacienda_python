@@ -115,7 +115,7 @@ components:
         estado:
           type: string
         pdf_tipocambio:
-          type: boolean
+          type: string
     company_post_put:
       type: object
       allOf:

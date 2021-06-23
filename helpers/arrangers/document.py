@@ -468,7 +468,7 @@ def parse_datetime(value, field) -> datetime:
         parsed = default_tzinfo(
             parser.parse(value, dayfirst=True), TZ_CR
         )
-    except ValueError as ver:
+    except (ValueError, OverflowError) as ver:
         raise ValidationError(
             value, field,
             error_code=ValidationErrorCodes.INVALID_DATETIME_FORMAT

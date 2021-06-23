@@ -90,7 +90,7 @@ def create(data: dict):
 
     encoded = b64encode(signed)
 
-    issuer_email = data.get('correoEmisor')
+    issuer_email = data.get('correoEmisor', '')
     if not issuer_email.strip():
         issuer_email = None
 
