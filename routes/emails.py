@@ -28,7 +28,7 @@ def route_send_email():
 def send_email_fe():
     body = json.loads(connexion.request.data)
     try:  # handling possible exception here until some function refactoring is done...
-        result = service.sent_email_fe(body)
+        result = service.resend_mail(body)
     except SMTPException as smtpex:
         http_status = EmailError.code
         error_code = EmailErrorCodes._BASE + utils.get_smtp_error_code(smtpex)

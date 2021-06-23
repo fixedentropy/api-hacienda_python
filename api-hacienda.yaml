@@ -735,6 +735,8 @@ components:
           type: string
         key_mh:
           type: string
+        email:
+          type: string
       required:
         - company_user
         - key_mh

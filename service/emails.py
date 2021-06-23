@@ -8,7 +8,7 @@ from configuration import globalsettings
 from helpers.errors.enums import InputErrorCodes, InternalErrorCodes
 from helpers.errors.exceptions import InputError, ServerError
 from helpers.utils import build_response_data
-from helpers.validations.document import KEY_PARTS_SLICES
+from helpers.validations.document import KEY_PARTS_SLICES, validate_email
 from infrastructure import company_smtp
 from infrastructure import documents
 from infrastructure import template as dao_template
@@ -193,6 +193,22 @@ def send_custom_email(data, file1, file2, file3):
     send_email(receivers, host, sender, port, encrypt_type,
                username, password, subject, content, attachments)
     return build_response_data({'message': 'email sent successfully'})
+
+
+# just proxyin' to sent_email_fe to use or not a different email
+# should prolly update sent_email_fe to not do two db hits on the same thing...
+# TODO: modulate sent_email_fe
+# TODO: this method should not pull additional emails
+def resend_mail(data: dict):
+    if 'email' in data and data['email'].strip():
+        new_email = data['email']
+        validate_email(new_email)
+        company = dao_company.get_company_data(data['company_user'])
+        document = documents.get_document(company['id'], data['key_mh'])
+        document['email'] = new_email
+    else:
+        document = data.copy()
+    return sent_email_fe(document)
 
 
 def _html_to_plain(html: str) -> str:
