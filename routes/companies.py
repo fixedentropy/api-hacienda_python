@@ -2,6 +2,7 @@ import connexion
 
 from service import companies as service
 from service import message as model_message
+from service import documents as model_documents
 from helpers import utils
 
 
@@ -42,13 +43,17 @@ def patch_company(company_id):
     return utils.build_response(result)
 
 
-def get_documents(company_user: str, doc_type: str, files: str = None):
-    result = service.get_documents_by_type(company_user, doc_type, files)
+def get_documents(company_user: str, doc_type: str, files: str = None,
+                  since: str = None, until: str = None):
+    result = model_documents.get_documents_by_type(
+        company_user, doc_type, files, since, until
+    )
     return utils.build_response(result)
 
 
-def get_messages(company_user: str, files: str = None):
-    result = service.get_messages(company_user, files)
+def get_messages(company_user: str, files: str = None, since: str = None,
+                 until: str = None):
+    result = model_message.get_by_company(company_user, files, since, until)
     return utils.build_response(result)
 
 

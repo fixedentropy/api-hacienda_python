@@ -1666,7 +1666,9 @@ DELIMITER $$
 CREATE PROCEDURE usp_getCompanysDocumentsByType(
 	p_company_id INT UNSIGNED,
 	p_document_type VARCHAR(10),
-	p_return_files BOOLEAN
+	p_return_files BOOLEAN,
+	p_since DATETIME,
+	p_before DATETIME
 )
 BEGIN
 	IF p_return_files THEN
@@ -1689,7 +1691,8 @@ BEGIN
 			CONVERT(pdfdocument USING utf8) AS pdfdocument
 		FROM documents
 		WHERE company_id = p_company_id
-			AND document_type = p_document_type;
+			AND document_type = p_document_type
+			AND datesign BETWEEN p_since AND p_before;
 	ELSE
 		SELECT
 			id,
@@ -1710,7 +1713,8 @@ BEGIN
 			IF(pdfdocument IS NOT NULL, TRUE, FALSE) AS pdfdocument
 		FROM documents
 		WHERE company_id = p_company_id
-			AND document_type = p_document_type;
+			AND document_type = p_document_type
+			AND datesign BETWEEN p_since AND p_before;
 	END IF;
 END $$
 DELIMITER ;
@@ -1720,7 +1724,9 @@ DROP PROCEDURE IF EXISTS usp_getCompanysMessages;
 DELIMITER $$
 CREATE PROCEDURE usp_getCompanysMessages(
 	p_company_id INT UNSIGNED,
-	p_return_files BOOLEAN
+	p_return_files BOOLEAN,
+	p_since DATETIME,
+	p_until DATETIME
 )
 BEGIN
 	IF p_return_files THEN
@@ -1741,7 +1747,8 @@ BEGIN
 			CONVERT(answer_xml USING utf8) AS answer_xml,
 			email_sent
 		FROM message
-		WHERE company_id = p_company_id;
+		WHERE company_id = p_company_id
+			AND issue_date BETWEEN p_since AND p_until;
 	ELSE
 		SELECT
 			id,
@@ -1760,7 +1767,8 @@ BEGIN
 			IF(answer_xml IS NOT NULL, TRUE, FALSE) AS answer_xml,
 			email_sent
 		FROM message
-		WHERE company_id = p_company_id;
+		WHERE company_id = p_company_id
+			AND issue_date BETWEEN p_since AND p_until;
 	END IF;
 END $$
 DELIMITER ;

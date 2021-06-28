@@ -16,6 +16,7 @@ from helpers.entities.strings import IDN, IDNType
 from helpers.errors.enums import InputErrorCodes
 from helpers.errors.exceptions import InputError
 from helpers.utils import build_response_data, run_and_summ_collec_job, get_smtp_error_code
+from helpers.utils.date_time import parse_datetime_range_cr
 from infrastructure import companies as dao_company
 from infrastructure import company_smtp as dao_smtp
 from infrastructure import documents as dao_document
@@ -153,7 +154,9 @@ def process_message(company_user: str, key_mh: str, rec_seq_num: str = None,
     return result
 
 
-def get_by_company(company: str, with_files: str = None):
+def get_by_company(company: str, with_files: str = None, since: str = None,
+                   until: str = None):
+    date_since, date_until = parse_datetime_range_cr(since, until)
     company_data = dao_company.get_company_data(company)
     if company_data is None:
         raise InputError(
@@ -163,8 +166,17 @@ def get_by_company(company: str, with_files: str = None):
     if not company_data['is_active']:
         raise InputError(error_code=InputErrorCodes.INACTIVE_COMPANY)
 
-    messages = dao_message.select_by_company(company_data['id'], bool(with_files))
-    return build_response_data({'data': messages})
+    messages = dao_message.select_by_company(
+        company_data['id'],
+        bool(with_files),
+        date_since,
+        date_until
+    )
+    return build_response_data({
+        'data': {
+            'messages': messages
+        }
+    })
 
 
 def get_prop(company_user: str, key_mh: str, prop_name: str):
@@ -559,7 +571,7 @@ def _handle_hacienda_api_response(response: requests.Response):
                     'content': response.text
                 }
             }
-        except requests.exceptions.HTTPError as httper:
+        except requests.exceptions.HTTPError:
             info = {
                 'error':
                     {

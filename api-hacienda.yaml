@@ -956,6 +956,9 @@ components:
           - consecutivo
           - receptor
           - montoImpuesto
+    isodate:
+      type: string
+      format: date
   parameters:
     debug:
       name: {{debug_switch}}
@@ -975,6 +978,18 @@ components:
       required: false
       schema:
         type: string
+    date_since:
+      name: since
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/isodate'
+    date_until:
+      name: until
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/isodate'
 paths:
   /api/companies:
     get:
@@ -1145,6 +1160,8 @@ paths:
               - 'nd'
               - 'nc'
         - $ref: '#/components/parameters/with_files'
+        - $ref: '#/components/parameters/date_since'
+        - $ref: '#/components/parameters/date_until'
       responses:
         "200":
           $ref: '#/components/responses/OK'
@@ -1295,6 +1312,8 @@ paths:
           schema:
             type: string
         - $ref: '#/components/parameters/with_files'
+        - $ref: '#/components/parameters/date_since'
+        - $ref: '#/components/parameters/date_until'
       responses:
         "200":
           $ref: '#/components/responses/OK'
@@ -1447,14 +1466,24 @@ paths:
         content:
           application/json:
             schema:
-             properties:
-               data:
-                 type: object
-                 properties:
-                   id_compania:
-                     type: string
-                   tipo_documento:
-                     type: string
+              type: object
+              properties:
+                data:
+                  type: object
+                  properties:
+                    id_compania:
+                      type: string
+                    tipo_documento:
+                      type: string
+                    archivos:
+                      type: string
+                    desde:
+                      $ref: '#/components/schemas/isodate'
+                    hasta:
+                      $ref: '#/components/schemas/isodate'
+                  required:
+                    - id_compania
+                    - tipo_documento
       responses:
         "200":
           $ref: '#/components/responses/OK'
@@ -1893,6 +1922,8 @@ paths:
           schema:
             type: string
         - $ref: '#/components/parameters/with_files'
+        - $ref: '#/components/parameters/date_since'
+        - $ref: '#/components/parameters/date_until'
       responses:
         "200":
           $ref: '#/components/responses/OK'

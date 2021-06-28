@@ -31,8 +31,14 @@ def consult_documents():
 
 
 def get_documents_report():
-    body = json.loads(connexion.request.data)
-    result = service.document_report(body['data']['id_compania'], body['data']['tipo_documento'])
+    body = connexion.request.json['data']
+    result = service.get_documents_by_type(
+        body['id_compania'],
+        body['tipo_documento'],
+        body.get('archivos'),
+        body.get('desde'),
+        body.get('hasta')
+    )
     return utils.build_response(result)
 
 

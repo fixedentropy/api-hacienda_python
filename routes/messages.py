@@ -2,7 +2,6 @@ import connexion
 
 from service import message as model_message
 from helpers.utils import build_response
-from helpers.debugging import set_debug_mode
 
 
 def create_message():
@@ -23,8 +22,9 @@ def process_message():
     return build_response(result)
 
 
-def get_by_company(company: str, files: str = None):
-    result = model_message.get_by_company(company, files)
+def get_by_company(company: str, files: str = None, since: str = None,
+                   until: str = None):
+    result = model_message.get_by_company(company, files, since, until)
     return build_response(result)
 
 

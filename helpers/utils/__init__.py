@@ -1,11 +1,12 @@
 from traceback import format_exc
-from smtplib import SMTPConnectError, SMTPNotSupportedError, SMTPAuthenticationError, SMTPSenderRefused, SMTPDataError, \
+from smtplib import SMTPConnectError, SMTPNotSupportedError, \
+    SMTPAuthenticationError, SMTPSenderRefused, SMTPDataError, \
     SMTPRecipientsRefused
 from time import sleep
 
 from flask import jsonify
 
-from .errors.enums import InternalErrorCodes
+from helpers.errors.enums import InternalErrorCodes
 
 
 def build_response_data(result: dict,
