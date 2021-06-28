@@ -5,7 +5,7 @@ import requests
 from email.headerregistry import Address
 from email.errors import HeaderParseError
 
-from helpers.errors.exceptions import InputError, ValidationError, ServerError, HaciendaError
+from helpers.errors.exceptions import InputError, ValidationError, HaciendaError
 from helpers.errors.enums import InputErrorCodes, ValidationErrorCodes, InternalErrorCodes
 # from helpers.debugging import time_my_func
 from helpers.entities.numerics import DecimalMoney as Money

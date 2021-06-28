@@ -864,7 +864,9 @@ components:
         message:
           type: string
         detail:
-          type: object
+          anyOf:
+          - type: object
+          - type: string
       required:
         - status
         - code

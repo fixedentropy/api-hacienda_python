@@ -24,7 +24,6 @@ _MIN_LENGTH = 3
 # for searching.
 # Then, dispatches it to the correct function based on "where"...
 def search(data, where):
-    result = {}
     _query = data.get('query', '').strip()
     if _query and len(_query) >= _MIN_LENGTH:
         # Search. Asume all good

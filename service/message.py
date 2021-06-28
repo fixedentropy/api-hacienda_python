@@ -335,9 +335,14 @@ def _handle_created_message(company: dict, message: dict, token: str):
     if 'error' in info:
         if info['error']['http_status'] == 400:  # gotta update only if the response is 400...
             dao_message.update_from_answer(company_id, key, sequence, 'procesando')
-        return info
+            db_commit()
+            return {
+                'message': 'procesando',
+                'status': 'procesando'
+            }
+        return info['error']
     elif 'unexpected' in info:
-        return info
+        return info['unexpected']
 
     dao_message.update_from_answer(company_id, key, sequence, 'procesando')
     db_commit()
@@ -353,9 +358,13 @@ def _handle_created_message(company: dict, message: dict, token: str):
 def _handle_sent_message(company: dict, message: dict, token: str, include_xml: bool):
     status = message['status']
     answer_xml = message['answer_xml']
+
     result = {
         'status': status,
-        'data': {}
+        'data': {
+            'message': status,
+            'date': _curr_datetime_cr()
+        }
     }
     if not request_pool.spend():
         if include_xml:
@@ -370,7 +379,7 @@ def _handle_sent_message(company: dict, message: dict, token: str, include_xml: 
     )
     info = _handle_hacienda_api_response(response)
     if 'error' in info or 'unexpected' in info:
-        return info
+        return info.get('error', info['unexpected'])
 
     if 'ind-estado' in info:
         status = info['ind-estado']
@@ -498,6 +507,7 @@ def _handle_hacienda_api_response(response: requests.Response):
             """.format(response.text), exc_info=ver)
             info = {
                 'error': {
+                    'status': 'Error',
                     'message': 'Bad response body format received from Hacienda.',
                     'http_status': 400,
                     'code': 400
@@ -518,6 +528,7 @@ def _handle_hacienda_api_response(response: requests.Response):
         Cause: {}""".format(val_exc, cause))
         info = {
             'error': {
+                'status': 'Error',
                 'http_status': 400,
                 'code': 400,
                 'detail': cause
@@ -534,6 +545,7 @@ def _handle_hacienda_api_response(response: requests.Response):
         Cause: {}""".format(cause))
         info = {
             'error': {
+                'status': 'Error',
                 'http_status': 404,
                 'code': 404,
                 'detail': cause
@@ -550,6 +562,7 @@ def _handle_hacienda_api_response(response: requests.Response):
         info = {
             'error':
                 {
+                    'status': 'Error',
                     'http_status': 401,
                     'code': 401,
                     'detail': response.reason
@@ -566,7 +579,8 @@ def _handle_hacienda_api_response(response: requests.Response):
             response.raise_for_status()
             info = {
                 'unexpected': {
-                    'status': response.status_code,
+                    'status': 'Error',
+                    'http_status': response.status_code,
                     'reason': response.reason,
                     'content': response.text
                 }
@@ -575,6 +589,7 @@ def _handle_hacienda_api_response(response: requests.Response):
             info = {
                 'error':
                     {
+                        'status': 'Error',
                         'http_status': response.status_code,
                         'code': response.status_code,
                         'detail': response.reason + '/' + response.text

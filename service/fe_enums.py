@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from enum import Enum
-
 UrlHaciendaToken = {
     'api-stag': 'https://idp.comprobanteselectronicos.go.cr/auth/realms/rut-stag/protocol/openid-connect/token',
     'api-prod': 'https://idp.comprobanteselectronicos.go.cr/auth/realms/rut/protocol/openid-connect/token',

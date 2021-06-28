@@ -4,7 +4,6 @@ import tempfile
 import pdfkit
 from flask import render_template
 
-from . import fe_enums
 
 CREDIT_CURRENCY_EXCHANGE_POLICY = """\
 Si la factura no se cancela dentro del mes de su facturación, \

@@ -5,7 +5,7 @@ Module that contains overrides to connexion's configurations.
 import logging
 
 from flask import jsonify
-from connexion.decorators.validation import RequestBodyValidator, ValidationError, is_null
+from connexion.decorators.validation import RequestBodyValidator, is_null
 
 logger = logging.getLogger(__name__)
 
