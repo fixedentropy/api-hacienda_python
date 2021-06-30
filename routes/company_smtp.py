@@ -1,7 +1,6 @@
 import connexion
 import json
 from service import company_smtp as service
-from helpers import errors
 from helpers import utils
 
 

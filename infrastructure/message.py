@@ -64,13 +64,16 @@ def select(company_id: int, key_mh: str, rec_seq_num: str):
         raise DatabaseError(error_code=DBErrorCodes.DB_MESSAGE_SELECT_ONE) from dbae
 
 
-def select_by_company(company_id: int, with_files: bool = False, limit: int = None):
-    procedure = 'usp_selectByCompany_message'
-    args = (company_id, with_files, limit)
+def select_by_company(company_id: int,  with_files: bool, since: datetime,
+                      until: datetime):
+    procedure = 'usp_getCompanysMessages'
+    args = (company_id, with_files, since, until)
     try:
         return dba.fetchall_from_proc(procname=procedure, args=args)
     except dba.DbAdapterError as dbae:
-        raise DatabaseError(error_code=DBErrorCodes.DB_MESSAGE_SELECT_BY_COMPANY) from dbae
+        raise DatabaseError(
+            error_code=DBErrorCodes.DB_MESSAGE_SELECT_BY_COMPANY
+        ) from dbae
 
 
 def select_by_status(status: int, company_id: str = None,

@@ -1,17 +1,16 @@
 from copy import deepcopy
-from datetime import datetime, timedelta
+from datetime import timedelta
 from decimal import Decimal
 
-from dateutil import parser
 from dateutil import tz
-from dateutil.utils import default_tzinfo
 
-from service import fe_enums, utils
-from infrastructure import companies as companies_dao
-from infrastructure import documents as documents_dao
+from helpers.errors.enums import ValidationErrorCodes
 # from helpers.debugging import time_my_func
 from helpers.errors.exceptions import ValidationError
-from helpers.errors.enums import ValidationErrorCodes
+from helpers.utils.date_time import parse_datetime
+from infrastructure import companies as companies_dao
+from infrastructure import documents as documents_dao
+from service import fe_enums, utils
 
 NO_PDF_TYPES = (fe_enums.TipoDocumentApiSwapped['TE'],)
 DATETIME_DISPLAY_FORMAT = '%d-%m-%Y'
@@ -458,23 +457,6 @@ def build_pdf_footer_data(data: dict) -> dict:
     # footer_data['email'] = data['issuer'].get('email', '')  # jic
     footer_data['notes'] = pdf_notes
     return footer_data
-
-
-def parse_datetime(value, field) -> datetime:
-    if isinstance(value, datetime):
-        return value
-
-    try:
-        parsed = default_tzinfo(
-            parser.parse(value, dayfirst=True), TZ_CR
-        )
-    except (ValueError, OverflowError) as ver:
-        raise ValidationError(
-            value, field,
-            error_code=ValidationErrorCodes.INVALID_DATETIME_FORMAT
-        ) from ver
-    else:
-        return parsed
 
 
 def generates_pdf(data: dict) -> bool:

@@ -9,6 +9,7 @@ from helpers.arrangers import document as document_arranger
 from helpers.errors.enums import InputErrorCodes, InternalErrorCodes
 from helpers.errors.exceptions import InputError, ServerError
 from helpers.utils import build_response_data, run_and_summ_collec_job, get_smtp_error_code
+from helpers.utils.date_time import parse_datetime_range_cr
 from helpers.validations import document as document_validator
 from infrastructure import companies
 from infrastructure import documents
@@ -393,9 +394,27 @@ def consult_document(company_user, key_mh, answer: bool):  # todo: review this..
     return response
 
 
-def document_report(company_user, document_type):
-    result = documents.get_documentsreport(company_user, document_type)
-    return build_response_data({'data': {'documents': result}})
+def get_documents_by_type(company_id: str, doc_type: str, files: str = None,
+                          since: str = None, until: str = None):
+    date_since, date_before = parse_datetime_range_cr(since, until)
+
+    company = companies.get_company_data(company_id)
+    if not company:
+        raise InputError('Company', company_id,
+                         error_code=InputErrorCodes.NO_RECORD_FOUND)
+
+    documents_collection = documents.get_companys_documents_by_type(
+        company['id'],
+        doc_type,
+        True if files is not None else False,
+        date_since,
+        date_before
+    )
+    return build_response_data({
+        'data': {
+            'documents': documents_collection
+        }
+    })
 
 
 def get_pdf(company_user: str, key: str):

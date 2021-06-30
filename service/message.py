@@ -16,6 +16,7 @@ from helpers.entities.strings import IDN, IDNType
 from helpers.errors.enums import InputErrorCodes
 from helpers.errors.exceptions import InputError
 from helpers.utils import build_response_data, run_and_summ_collec_job, get_smtp_error_code
+from helpers.utils.date_time import parse_datetime_range_cr
 from infrastructure import companies as dao_company
 from infrastructure import company_smtp as dao_smtp
 from infrastructure import documents as dao_document
@@ -153,7 +154,9 @@ def process_message(company_user: str, key_mh: str, rec_seq_num: str = None,
     return result
 
 
-def get_by_company(company: str, with_files: str = None):
+def get_by_company(company: str, with_files: str = None, since: str = None,
+                   until: str = None):
+    date_since, date_until = parse_datetime_range_cr(since, until)
     company_data = dao_company.get_company_data(company)
     if company_data is None:
         raise InputError(
@@ -163,8 +166,17 @@ def get_by_company(company: str, with_files: str = None):
     if not company_data['is_active']:
         raise InputError(error_code=InputErrorCodes.INACTIVE_COMPANY)
 
-    messages = dao_message.select_by_company(company_data['id'], bool(with_files))
-    return build_response_data({'data': messages})
+    messages = dao_message.select_by_company(
+        company_data['id'],
+        bool(with_files),
+        date_since,
+        date_until
+    )
+    return build_response_data({
+        'data': {
+            'messages': messages
+        }
+    })
 
 
 def get_prop(company_user: str, key_mh: str, prop_name: str):
@@ -323,9 +335,14 @@ def _handle_created_message(company: dict, message: dict, token: str):
     if 'error' in info:
         if info['error']['http_status'] == 400:  # gotta update only if the response is 400...
             dao_message.update_from_answer(company_id, key, sequence, 'procesando')
-        return info
+            db_commit()
+            return {
+                'message': 'procesando',
+                'status': 'procesando'
+            }
+        return info['error']
     elif 'unexpected' in info:
-        return info
+        return info['unexpected']
 
     dao_message.update_from_answer(company_id, key, sequence, 'procesando')
     db_commit()
@@ -341,9 +358,13 @@ def _handle_created_message(company: dict, message: dict, token: str):
 def _handle_sent_message(company: dict, message: dict, token: str, include_xml: bool):
     status = message['status']
     answer_xml = message['answer_xml']
+
     result = {
         'status': status,
-        'data': {}
+        'data': {
+            'message': status,
+            'date': _curr_datetime_cr()
+        }
     }
     if not request_pool.spend():
         if include_xml:
@@ -358,7 +379,7 @@ def _handle_sent_message(company: dict, message: dict, token: str, include_xml: 
     )
     info = _handle_hacienda_api_response(response)
     if 'error' in info or 'unexpected' in info:
-        return info
+        return info.get('error', info['unexpected'])
 
     if 'ind-estado' in info:
         status = info['ind-estado']
@@ -486,6 +507,7 @@ def _handle_hacienda_api_response(response: requests.Response):
             """.format(response.text), exc_info=ver)
             info = {
                 'error': {
+                    'status': 'Error',
                     'message': 'Bad response body format received from Hacienda.',
                     'http_status': 400,
                     'code': 400
@@ -506,6 +528,7 @@ def _handle_hacienda_api_response(response: requests.Response):
         Cause: {}""".format(val_exc, cause))
         info = {
             'error': {
+                'status': 'Error',
                 'http_status': 400,
                 'code': 400,
                 'detail': cause
@@ -522,6 +545,7 @@ def _handle_hacienda_api_response(response: requests.Response):
         Cause: {}""".format(cause))
         info = {
             'error': {
+                'status': 'Error',
                 'http_status': 404,
                 'code': 404,
                 'detail': cause
@@ -538,6 +562,7 @@ def _handle_hacienda_api_response(response: requests.Response):
         info = {
             'error':
                 {
+                    'status': 'Error',
                     'http_status': 401,
                     'code': 401,
                     'detail': response.reason
@@ -554,15 +579,17 @@ def _handle_hacienda_api_response(response: requests.Response):
             response.raise_for_status()
             info = {
                 'unexpected': {
-                    'status': response.status_code,
+                    'status': 'Error',
+                    'http_status': response.status_code,
                     'reason': response.reason,
                     'content': response.text
                 }
             }
-        except requests.exceptions.HTTPError as httper:
+        except requests.exceptions.HTTPError:
             info = {
                 'error':
                     {
+                        'status': 'Error',
                         'http_status': response.status_code,
                         'code': response.status_code,
                         'detail': response.reason + '/' + response.text

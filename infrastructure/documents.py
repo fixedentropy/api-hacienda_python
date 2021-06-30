@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from helpers.errors.enums import DBErrorCodes
 from helpers.errors.exceptions import DatabaseError
 from infrastructure import dbadapter as dba
@@ -95,12 +97,6 @@ def get_document(company_id, key_mh):
         raise DatabaseError(error_code=DBErrorCodes.DB_DOCUMENT_SELECT_ONE) from dbae
 
 
-def get_documents_company(company_id, state):  # MFD
-    procedure = 'sp_getDocumentByCompany'
-    args = (company_id, state)
-    return dba.fetchall_from_proc(procname=procedure, args=args)
-
-
 def get_documents(state, env):
     if state == 0:
         procedure = 'sp_getDocumentsValidate'
@@ -114,13 +110,16 @@ def get_documents(state, env):
                             error_code=DBErrorCodes.DB_DOCUMENT_JOBS) from dbae
 
 
-def get_documentsreport(company_id, document_type):
-    procedure = 'sp_getDocumentsReport'
-    args = (company_id, document_type)
+def get_companys_documents_by_type(company_id: int, document_type: str,
+                                   return_files: bool, since: datetime, before: datetime):
+    procedure = 'usp_getCompanysDocumentsByType'
+    args = (company_id, document_type, return_files, since, before)
     try:
         return dba.fetchall_from_proc(procname=procedure, args=args)
     except dba.DbAdapterError as dbae:
-        raise DatabaseError(error_code=DBErrorCodes.DB_DOCUMENT_SELECT_BY_COMPANY_AND_TYPE) from dbae
+        raise DatabaseError(
+            error_code=DBErrorCodes.DB_DOCUMENT_SELECT_BY_COMPANY_AND_TYPE
+        ) from dbae
 
 
 def get_additional_emails(doc_id):

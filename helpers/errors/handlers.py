@@ -1,8 +1,5 @@
-import traceback
-
 from werkzeug.exceptions import InternalServerError, HTTPException
 from flask import g
-from flask import Response
 from connexion.apps.flask_app import FlaskApp
 from connexion.apis.flask_api import FlaskApi
 
@@ -11,7 +8,7 @@ from helpers.errors import exceptions
 from helpers.errors.enums import InternalErrorCodes
 from helpers.debugging import DEBUG_G_VAR_NAME
 
-from jsonschema import validate  # for development
+# from jsonschema import validate  # for development
 
 schema = {
     'type': 'object',
@@ -54,13 +51,13 @@ def generic_exception_handler(exception: InternalServerError):
         error['debug'] = exceptions.IBError._build_debug_info(exception.original_exception)
 
     mimetype = 'application/json'
-    validate(instance=error, schema=schema)
+    # validate(instance=error, schema=schema)
     return FlaskApi.get_response(build_response(error), mimetype)
 
 
 def iberror_handler(exception: exceptions.IBError):
     data = exception.to_response()
-    validate(instance=data, schema=schema)
+    # validate(instance=data, schema=schema)
     http_status_code = exception.code
     response = (data, http_status_code)
     mimetype = 'application/json'
