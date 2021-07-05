@@ -152,12 +152,12 @@ def create_document(data):
 
         pdfencoded = base64.b64encode(pdf)
 
+    _id_company = company_data['id']
+
     doc_id = documents.save_document(
-        _company_user, _key_mh, xmlencoded, 'creado', datecr, _type_document,
+        _id_company, _key_mh, xmlencoded, 'creado', datecr, _type_document,
         _receptor, _total_document, _total_taxes, pdfencoded, _email, _email_costs
     )
-
-    _id_company = company_data['id']
 
     if len(_additional_emails) > 0:
         save_additional_emails(doc_id, _additional_emails)

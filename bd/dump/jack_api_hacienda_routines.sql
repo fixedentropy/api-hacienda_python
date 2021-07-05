@@ -1037,7 +1037,7 @@ DELIMITER ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_saveDocument`(
-v_company_id varchar(45),
+v_company_id INT,
 v_key_mh varchar(50),
 v_signxml blob,
 v_status varchar(80),
@@ -1052,7 +1052,6 @@ v_email varchar(128),
 v_email_costs varchar(128)
 )
 BEGIN
-IF not exists (select id from documents where key_mh = v_key_mh) then
 	INSERT INTO `jack_api_hacienda`.`documents`
 	(
 	`company_id`,
@@ -1070,7 +1069,7 @@ IF not exists (select id from documents where key_mh = v_key_mh) then
 	`email_costs`)
 	VALUES
 	(
-	(Select id from companies where company_user = v_company_id),
+	v_company_id,
 	v_key_mh,
 	v_signxml,
 	v_status,
@@ -1083,7 +1082,6 @@ IF not exists (select id from documents where key_mh = v_key_mh) then
 	v_pdf,
 	v_email,
 	v_email_costs);
-END IF;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -2105,3 +2103,26 @@ BEGIN
 END //
 -- ------------
 DELIMITER ;
+
+
+-- ------------------------------
+-- New Update Document Procedure
+-- ------------------------------
+DELIMITER //
+DROP PROCEDURE IF EXISTS usp_documents_updateFromAnswer //
+CREATE PROCEDURE usp_documents_updateFromAnswer(
+	p_doc_id INT UNSIGNED,
+	p_answerxml BLOB,
+	p_status VARCHAR(80),
+	p_dateanswer DATETIME
+)
+BEGIN
+	UPDATE documents
+	SET	answerxml = p_answerxml,
+		status = p_status,
+		dateanswer = p_dateanswer
+	WHERE id = p_doc_id;
+END //
+DELIMITER ;
+-- ------------------------------
+-- ------------------------------
