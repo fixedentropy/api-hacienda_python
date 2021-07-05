@@ -6,8 +6,9 @@ from infrastructure import dbadapter as dba
 
 
 # autoinc table; returns last id
-def save_document(company_id, key_mh, sign_xml, status, date, document_type,
-                  receiver, total_document, total_taxed, pdf, email, email_costs):
+def save_document(company_id: int, key_mh: str, sign_xml: bytes, status: str,
+                  date: datetime, document_type: str, receiver: dict, total_document,
+                  total_taxed, pdf: bytes, email: str, email_costs: str = None):
     receiver_type = None
     receiver_dni = None
     if receiver is not None:
@@ -63,6 +64,8 @@ def save_document_additional_email(doc_id, email):
     return True
 
 
+# todo: use actual company_id (uses company_user currently)
+# todo: doc_id instead of key_mh
 def update_document(company_id, key_mh, answer_xml, status, date):
     procedure = 'sp_updateDocument'
     args = (company_id, key_mh, answer_xml, status, date)
@@ -74,6 +77,24 @@ def update_document(company_id, key_mh, answer_xml, status, date):
                             error_code=DBErrorCodes.DB_DOCUMENT_UPDATE) from dbae
 
     return True
+
+
+# todo: override update_document with this signature
+def update_document_2(doc_id: int, answer_xml: bytes, status: str,
+                      date: datetime):
+    procedure = 'usp_documents_updateFromAnswer'
+    args = (doc_id, answer_xml, status, date)
+    try:
+        dba.execute_proc(
+            proc_name=procedure,
+            args=args,
+            assert_unique=True
+        )
+    except dba.DbAdapterError as dbae:
+        raise DatabaseError(
+            dbae.get_message(),
+            error_code=DBErrorCodes.DB_DOCUMENT_UPDATE
+        ) from dbae
 
 
 def update_is_sent(doc_id, is_sent):
