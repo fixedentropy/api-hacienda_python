@@ -26,8 +26,12 @@
         .invoice-info {
             position: absolute;
             top: 0;
-            right: 14px;
+            right: 0;
             text-align: right
+        }
+
+        .issuer-info {
+            width: 66%
         }
     </style>
 </head>
@@ -41,7 +45,7 @@
                     </td>
                     {% endif %}
                     <td>
-                        <table class="table table-sm">
+                        <table class="table table-sm issuer-info">
                             <tr>
                                 <td>
                                     {{issuer.name}}

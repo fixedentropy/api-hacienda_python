@@ -335,6 +335,12 @@ def build_pdf_body_data(data: dict, company_data: dict) -> dict:
         )).strftime(DATETIME_DISPLAY_FORMAT)
         body_data['credit_term'] = term_days
 
+    total_other_charges = Decimal(data.get('totalOtrosCargos', '0'))
+    if total_other_charges:
+        body_data['total_other_charges'] = total_other_charges
+        other_charges = arrange_other_charges(data.get('otrosCargos', []))
+        body_data['other_charges'] = other_charges
+
     details = data['detalles']
     exemptions = {}
     for line in details:
@@ -448,6 +454,7 @@ def build_pdf_footer_data(data: dict) -> dict:
                          )
     if not isinstance(pdf_notes, list):
         pdf_notes = []
+    pdf_notes = list(n for n in pdf_notes if str(n).strip())
 
     if data['condicionVenta'] == CREDIT_CONDITION_CODE \
             and currency['tipoMoneda'] != LOCAL_CURRENCY:
@@ -456,6 +463,7 @@ def build_pdf_footer_data(data: dict) -> dict:
 
     # footer_data['email'] = data['issuer'].get('email', '')  # jic
     footer_data['notes'] = pdf_notes
+
     return footer_data
 
 

@@ -510,9 +510,13 @@ def gen_xml_v43(company_data, document_type, key_mh,
         _other_text = invoice_comments.pop('otroTexto')
         if isinstance(_other_text, list):
             for _ot in _other_text:
-                sb.append('<OtroTexto>' + escape(str(_ot)) + '</OtroTexto>')
+                _sot = str(_ot)
+                if _sot.strip():
+                    sb.append('<OtroTexto>' + escape(_sot) + '</OtroTexto>')
         else:
-            sb.append('<OtroTexto>' + escape(str(_other_text)) + ' </OtroTexto>')
+            _s_other_text = str(_other_text)
+            if _s_other_text.strip():
+                sb.append('<OtroTexto>' + escape(_s_other_text) + ' </OtroTexto>')
 
         # killing off OtroContenido 'cuz not used. This section can handle it when it's relevant
         if 'otroContenido' in invoice_comments:

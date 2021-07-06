@@ -30,6 +30,11 @@
                 margin: 2px 7px;
             }
 
+            li > p {
+                text-align: left;
+                margin: 0px;
+            }
+
             .page-count {
                 vertical-align: bottom;
                 width: {{ qr_size + 20 }}px;
@@ -62,21 +67,23 @@
                     </td>
                     <td class="notes">
                         <div class="container">
+                            <div style="border-top-style: solid; border-bottom-style: solid; border-color: #dee2e6">
+                                {% if notes %}
+                                <p>
+                                    <b>Observaciones:</b>
+                                </p>
+                                <ul>
+                                {%for note in notes%}
+                                    <li><p>{{note}}</p></li>
+                                {%endfor%}
+                                </ul>
+                                {% endif %}
+                            </div>
                             <p>
                                 Autorizada mediante resolución DGT-R-033-2019, publicada
                                 en La Gaceta, Alcance N°147 del 27 de junio de 2019. Versión
                                 del Documento Electrónico: 4.3
                             </p>
-                            <div>
-                                {% if notes %}
-                                <p>
-                                    <b>Observaciones:</b>
-                                </p>
-                                {%for note in notes%}
-                                <p>{{note}}</p>
-                                {%endfor%}
-                                {% endif %}
-                            </div>
                         </div>
                     </td>
                     <td class="container qr-code">

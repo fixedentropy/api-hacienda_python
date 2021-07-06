@@ -17,11 +17,15 @@
 
 		.table {
 			font-size: 13px;
-			margin-top: 20px;
+			margin-top: 5px;
 		}
 
 		.new-page {
 			page-break-before: always
+		}
+
+		.keep-together {
+			page-break-inside: avoid
 		}
 
 		.no-wrap {
@@ -89,6 +93,7 @@
 			{% endif %}
 		</table>
 		<hr>
+		<b>Detalles</b>
 		<table class="table table-sm table-striped">
 			<thead class="thead-dark">
 				<tr>
@@ -103,9 +108,9 @@
 				</tr>
 			</thead>
 			<tbody>
-				{%for line in lines %}
+				{% for line in lines %}
 				<tr>
-					<td scope="row" class="text-left">{{line.numero}}</td>
+					<td class="text-left">{{line.numero}}</td>
 					<td class="text-left">{{line._cabys}}</td>
 					<td class="text-left">{{line.detalle}}</td>
 					<td class="text-right">{{line.cantidad}}</td>
@@ -114,46 +119,81 @@
 					<td class="text-right">{% if line.impuesto %}{{line.impuesto[0].tarifa|int}}{% elif line._cabys %}0{% endif %}</td>
 					<td class="text-right">{{line.totalLinea}}</td>
 				</tr>
-				{%endfor%}
+				{% endfor %}
 			</tbody>
 		</table>
 		<div style="text-align: center"><p> ****** Ultima Linea *******</p></div>
-		<table class="table table-sm">
-			<tr>
-				<td>
-					<table>
-						<tr>
-							<td style="border-top: 0px; margin-right: 3px">{{total_document_words}}</td>
-						</tr>
-					</table>
-				</td>
-				<td>
-					<table style="border-left: 1px; border-left-style: solid; border-color: #dee2e6">
-						<tr class="no-wrap">
-							<td style="border-top: 0px" scope="row">Sub Total:</td>
-							<td style="border-top: 0px">{{currencySymbol}} {{total_sales}}</td>
-						</tr>
-						<tr class="no-wrap">
-							<td scope="row">Descuento:</td>
-							<td>{{currencySymbol}} {{total_discounts}}</td>
-						</tr>
-						<tr class="no-wrap">
-							<td scope="row">IVA:</td>
-							<td>{{currencySymbol}} {{total_taxes}}</td>
-						</tr>{% if total_returned_iva %}
-						<tr class="no-wrap">
-							<td scope="row">IVA Devuelto:</td>
-							<td>{{currencySymbol}} {{total_returned_iva}}</td>
-						</tr>
-						{% endif %}
-						<tr class="no-wrap">
-							<td scope="row">Total Factura:</td>
-							<td>{{currencySymbol}} {{total_document}}</td>
-						</tr>
-					</table>
-				</td>
-			</tr>
-		</table>
+		{% if other_charges %}
+		<hr />
+		<div class="keep-together">
+			<b>Otros Cargos</b>
+			<table class="table table-sm table-striped">
+				<thead class="thead-dark">
+					<tr>
+						<th class="text-left">Tipo Documento</th>
+						<th class="text-left">Detalle</th>
+						<th class="text-right">Monto</th>
+					</tr>
+				</thead>
+				<tbody>
+					{% for oc in other_charges %}
+					<tr>
+						<td class="text-left">{{ oc.tipoDocumento }}</td>
+						<td class="text-left">{{ oc.detalle }}</td>
+						<td class="text-right">{{ oc.montoCargo|float|round(2) }}</td>
+					</tr>
+					{% endfor %}
+				</tbody>
+			</table>
+		</div>
+		<div style="text-align: center"><p> ****** Ultima Linea *******</p></div>
+		{% endif %}
+		<div class="keep-together">
+			<b>Resumen</b>
+			<table class="table table-sm">
+				<tr>
+					<td>
+						<table>
+							<tr>
+								<td style="border-top: 0px; margin-right: 3px">{{total_document_words}}</td>
+							</tr>
+						</table>
+					</td>
+					<td>
+						<table style="border-left: 1px; border-left-style: solid; border-color: #dee2e6">
+							<tr class="no-wrap">
+								<td style="border-top: 0px">Sub Total:</td>
+								<td style="border-top: 0px">{{currencySymbol}} {{total_sales}}</td>
+							</tr>
+							<tr class="no-wrap">
+								<td>Descuento:</td>
+								<td>{{currencySymbol}} {{total_discounts}}</td>
+							</tr>
+							<tr class="no-wrap">
+								<td>IVA:</td>
+								<td>{{currencySymbol}} {{total_taxes}}</td>
+							</tr>
+							{% if total_returned_iva %}
+							<tr class="no-wrap">
+								<td>IVA Devuelto:</td>
+								<td>{{currencySymbol}} {{total_returned_iva}}</td>
+							</tr>
+							{% endif %}
+							{% if total_other_charges %}
+							<tr class="no-wrap">
+								<td>Otros Cargos:</td>
+								<td>{{currencySymbol}} {{total_other_charges|float|round(2)}}</td>
+							</tr>
+							{% endif %}
+							<tr class="no-wrap">
+								<td scope="row">Total Factura:</td>
+								<td>{{currencySymbol}} {{total_document}}</td>
+							</tr>
+						</table>
+					</td>
+				</tr>
+			</table>
+		</div>
 		{% if exemption %}
 		<div class="new-page">
 			<hr />
