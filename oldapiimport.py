@@ -201,9 +201,12 @@ with app.app.app.app_context():
         if xml_file is not None:
             xml_date = xml_file.find('{*}FechaEmision')
             if xml_date is not None:
-                doc_date = datetime.datetime.fromisoformat(
-                    xml_date.text
-                )
+                try:
+                    doc_date = datetime.datetime.fromisoformat(
+                        xml_date.text
+                    )
+                except Exception:
+                    pass
             doc_type = parse_doc_type(xml_file)
             doc_idn_type, doc_dni = parse_idn(xml_file)
             doc_total, doc_taxes = parse_document_summary(xml_file)
