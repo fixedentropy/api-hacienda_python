@@ -125,6 +125,9 @@ def parse_idn(etree_xml_file):
         return None, None
 
     el_idn = el_recipient.find('{*}Identificacion')
+    if el_idn is None:
+        return None, None
+
     idn_type = el_idn.findtext('{*}Tipo')
     idn_number = el_idn.findtext('{*}Numero')
     return idn_type, idn_number
@@ -194,15 +197,16 @@ with app.app.app.app_context():
         doc_total = None
         doc_taxes = None
         doc_email = doc['correo_enviar']
+        doc_date = datetime.datetime.strptime(doc['fecha'], '%Y-%m-%d')
         if xml_file is not None:
-            doc_date = datetime.datetime.fromisoformat(
-                xml_file.find('{*}FechaEmision').text
-            )
+            xml_date = xml_file.find('{*}FechaEmision')
+            if xml_date is not None:
+                doc_date = datetime.datetime.fromisoformat(
+                    xml_date.text
+                )
             doc_type = parse_doc_type(xml_file)
             doc_idn_type, doc_dni = parse_idn(xml_file)
             doc_total, doc_taxes = parse_document_summary(xml_file)
-        else:
-            doc_date = datetime.datetime.strptime(doc['fecha'], '%Y-%m-%d')
 
         additional_emails = []
         if doc['correo_gastos']:
