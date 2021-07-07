@@ -2,9 +2,8 @@ import sys
 import json
 import base64
 import datetime
-import time
+import os.path
 
-import requests
 from lxml import etree
 
 import app
@@ -13,12 +12,8 @@ from infrastructure import documents as dao_documents
 from infrastructure.dbadapter import commit as db_commit
 
 
-BASE_URL = 'http://35.170.39.96/assets'
-XML_URL = '{base_url}/xml'.format(base_url=BASE_URL)
-SIGNED_URL = '{base_url}/firmado'.format(base_url=BASE_URL)
 XML_FILE_FORMAT = '{resource_url}/{doc_key}.xml'
-PDF_URL = '{base_url}/facturas'.format(base_url=BASE_URL)
-ANSWER_URL = '{base_url}/respuesta'.format(base_url=BASE_URL)
+PDF_FILE_FORMAT = '{resource_url}/{doc_key}.pdf'
 
 
 # console progress bar util
@@ -71,59 +66,39 @@ def parse_documents_json(d_json):
     return docs
 
 
-def parse_xml_file_from_url(c_id, document_key):
+def parse_xml_file_from_url(signed_url, xml_url):
     parsed = None
-    doc_xml_file_url = XML_FILE_FORMAT.format(
-        resource_url='{signed_url}/{company_id}'.format(
-            signed_url=SIGNED_URL, company_id=c_id
-        ),
-        doc_key=document_key
-    )
     try:
-        parsed = etree.parse(doc_xml_file_url)
+        parsed = etree.parse(signed_url)
     except Exception:
-        doc_xml_file_url = XML_FILE_FORMAT.format(
-            resource_url='{xml_url}/{company_id}'.format(
-                xml_url=XML_URL, company_id=c_id
-            ),
-            doc_key=document_key
-        )
         try:
-            parsed = etree.parse(doc_xml_file_url)
+            parsed = etree.parse(xml_url)
         except Exception as ex:
             print('Something went wrong: {} => {}'.format(
-                document_key, str(ex)
+                signed_url + '(/)' + xml_url, str(ex)
             ))
     return parsed
 
 
-def parse_pdf_file_from_url(c_id, document_key):
+def parse_pdf_file_from_url(url):
     parsed = None
-    doc_pdf_file_url = '{resource_url}/{doc_key}.pdf'.format(
-        resource_url='{pdf_url}/{company_id}'.format(
-            pdf_url=PDF_URL, company_id=c_id
-        ),
-        doc_key=document_key
-    )
-    pdf_response = requests.get(doc_pdf_file_url)
-    if pdf_response.status_code == 200:
-        parsed = pdf_response.text
+    try:
+        with open(url, 'rb') as pdf_data:
+            parsed = pdf_data.read()
+    except Exception as ex:
+        print('Something went wrong: {} => {}'.format(
+            url, str(ex)
+        ))
     return parsed
 
 
-def parse_answer_file_from_url(c_id, document_key):
+def parse_answer_file_from_url(url):
     parsed = None
-    doc_xml_file_url = XML_FILE_FORMAT.format(
-        resource_url='{answer_url}/{company_id}'.format(
-            answer_url=ANSWER_URL, company_id=c_id
-        ),
-        doc_key=document_key
-    )
     try:
-        parsed = etree.parse(doc_xml_file_url)
+        parsed = etree.parse(url)
     except Exception as ex:
         print('Something went wrong: {} => {}'.format(
-            document_key, str(ex)
+            url, str(ex)
         ))
     return parsed
 
@@ -176,8 +151,25 @@ with app.app.app.app_context():
     documents_json = sys.argv[2]
     importable_docs = parse_documents_json(documents_json)
 
+    local_url = sys.argv[3]
+    if not local_url:
+        do_exit('No file directory specified.')
+
+    if not os.path.isdir(local_url):
+        do_exit('No directory {} found.'.format(local_url))
+
+    xml_dir = '{base_dir}/xml'.format(base_dir=local_url)
+    signed_dir = '{base_dir}/firmado'.format(base_dir=local_url)
+    pdf_dir = '{base_dir}/facturas'.format(base_dir=local_url)
+    answer_dir = '{base_dir}/respuesta'.format(base_dir=local_url)
+
     for doc in progress_bar(importable_docs, prefix='Progress:', suffix='Complete', length=50):
         doc_key = doc['clave']
+        if len(doc_key) != 50:
+            print(
+                'Document "{}" has wrong key length: {}'.format(doc_key, len(doc_key))
+            )
+            continue
         if dao_documents.verify_exists(company_id, doc_key):
             print(
                 'Document "{}" already registered in database'.format(doc_key)
@@ -185,9 +177,16 @@ with app.app.app.app_context():
             continue
 
         doc_user = doc['usuario']
-        xml_file = parse_xml_file_from_url(doc_user, doc_key)
-        pdf_file = parse_pdf_file_from_url(doc_user, doc_key)
-        answer_file = parse_answer_file_from_url(doc_user, doc_key)
+        xml_file = parse_xml_file_from_url(
+            XML_FILE_FORMAT.format(resource_url=signed_dir, doc_key=doc_key),
+            XML_FILE_FORMAT.format(resource_url=xml_dir, doc_key=doc_key)
+        )
+        pdf_file = parse_pdf_file_from_url(
+            PDF_FILE_FORMAT.format(resource_url=pdf_dir, doc_key=doc_key)
+        )
+        answer_file = parse_answer_file_from_url(
+            XML_FILE_FORMAT.format(resource_url=answer_dir, doc_key=doc_key)
+        )
         doc_status = doc['estado']
         doc_type = 'FE'
         doc_idn_type = None
@@ -228,7 +227,7 @@ with app.app.app.app_context():
             },
             doc_total,
             doc_taxes,
-            base64.b64encode(pdf_file.encode('utf-8')) if pdf_file is not None else None,
+            base64.b64encode(pdf_file) if pdf_file is not None else None,
             doc_email,
             None
         )
@@ -252,5 +251,3 @@ with app.app.app.app_context():
         dao_documents.update_is_sent(document_id, 0)
 
         db_commit()
-
-        time.sleep(0.1)
